@@ -1,0 +1,99 @@
+@font-face {
+  font-family: "Inter";
+  src: url("./assets/fonts/Inter-Font.woff2") format("woff2"), url("./assets/fonts/Inter-Font.woff") format("woff"), url("./assets/fonts/Inter-Font.ttf") format("truetype"), url("./assets/fonts/Inter-Font.eot") format("embedded-opentype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Apply Inter to the entire app */
+body {
+  font-family: "Inter", sans-serif;
+}
+
+.MuiTypography-root,
+.MuiButton-root,
+.MuiInputBase-input,
+.MuiFormHelperText-root {
+  font-family: "Inter" !important;
+}
+.containedButton.MuiButtonBase-root {
+  background-color: #333a45;
+}
+.sectionTitle.MuiTypography-root {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 600;
+  font-size: 24px;
+  line-height: 32px;
+  height: 4rem;
+  border-bottom: 1px solid black;
+  align-content: center;
+  color: #000000;
+}
+
+.sectionQuestions.MuiTypography-root {
+  font-family: "Inter";
+  font-weight: 600;
+  font-size: 19px;
+  letter-spacing: 0.15px;
+  color: rgba(0, 0, 0, 0.87);
+}
+
+.pageHeaderTitle.MuiTypography-root {
+  font-family: "Inter";
+  font-weight: 700;
+  font-size: 30px;
+  line-height: 36px;
+  padding-top: 3rem;
+}
+
+.mandatory {
+  color: red;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .sectionTitle.MuiTypography-root {
+    font-size: 20px; /* Smaller title on mobile */
+    line-height: 28px;
+  }
+
+  .sectionQuestions.MuiTypography-root {
+    font-size: 16px; /* Smaller question text */
+  }
+
+  .pageHeaderTitle.MuiTypography-root {
+    font-size: 24px; /* Smaller header title */
+    padding-top: 2rem;
+  }
+
+  .mandatory {
+    font-size: 1rem; /* Adjust size of mandatory label */
+  }
+
+  /* Additional tweaks */
+  /* body {
+    padding: 1rem;
+  } */
+}
+
+/* For very small mobile screens */
+@media (max-width: 480px) {
+  .sectionTitle.MuiTypography-root {
+    font-size: 18px; /* Even smaller title */
+  }
+
+  .sectionQuestions.MuiTypography-root {
+    font-size: 14px; /* Even smaller question text */
+  }
+
+  .pageHeaderTitle.MuiTypography-root {
+    font-size: 20px; /* Smaller header title for tiny screens */
+  }
+
+  .mandatory {
+    font-size: 0.9rem; /* Slightly smaller mandatory label */
+  }
+}
