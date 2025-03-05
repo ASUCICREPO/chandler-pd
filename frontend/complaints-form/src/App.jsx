@@ -2,7 +2,7 @@ import { useState } from "react";
 import "./App.css";
 import Stack from "@mui/material/Stack";
 import logo from "./assets/logo.png";
-import { useForm, Controller, useWatch } from "react-hook-form";
+import { useForm, useFieldArray, Controller, useWatch } from "react-hook-form";
 import { Autocomplete, Button, Checkbox, Divider, FormControlLabel, FormHelperText, Radio, RadioGroup, TextField, Typography } from "@mui/material";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -20,8 +20,11 @@ function App() {
   const {
     control,
     handleSubmit,
+    getValues,
     setValue,
+    watch,
     formState: { errors },
+    trigger,
   } = useForm({
     defaultValues: {
       isUrgentChecked: false,
@@ -34,20 +37,24 @@ function App() {
       addressDirection: "",
       addressStreet: "",
       addressZipcode: "",
-
       intersection1Direction: "",
       intersection1Street: "",
       intersection2Direction: "",
       intersection2Street: "",
       intersectionZipcode: "",
-
       problemCategory: "",
       description: "",
       subscribeToAlerts: null,
+      email: "",
+      phone: "",
     },
   });
-  const location = useWatch({ control, name: "location" });
-
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "daysOfWeek", // Name of the field array
+  });
+  const subscribeToAlerts = watch("subscribeToAlerts"); // Watch checkbox state
+  const location = watch("location"); // Watch checkbox state
   const onSubmit = (data) => {
     const startTimeUTC = data.startTime ? dayjs(data.startTime).utc().toISOString() : null;
     const endTimeUTC = data.endTime ? dayjs(data.endTime).utc().toISOString() : null;
@@ -116,10 +123,27 @@ function App() {
                   <Controller
                     name="firstName"
                     control={control}
-                    rules={{ required: "First Name is required" }}
+                    rules={{
+                      required: "First Name is required", // Make it mandatory
+                      maxLength: {
+                        value: 50,
+                        message: "First Name cannot be longer than 50 characters", // Max length validation
+                      },
+                    }}
                     render={({ field }) => (
                       <TextField
-                        label="First Name"
+                        inputProps={{ maxLength: 50 }}
+                        label={
+                          <>
+                            <Typography>
+                              First Name
+                              <Typography component="span" className="mandatory">
+                                {" "}
+                                *
+                              </Typography>
+                            </Typography>
+                          </>
+                        }
                         variant="outlined"
                         sx={{
                           width: "30%",
@@ -138,10 +162,27 @@ function App() {
                   <Controller
                     name="lastName"
                     control={control}
-                    rules={{ required: "Last Name is required" }}
+                    rules={{
+                      required: "Last Name is required", // Make it mandatory
+                      maxLength: {
+                        value: 50,
+                        message: "Last Name cannot be longer than 50 characters", // Max length validation
+                      },
+                    }}
                     render={({ field }) => (
                       <TextField
-                        label="Last Name"
+                        inputProps={{ maxLength: 50 }}
+                        label={
+                          <>
+                            <Typography>
+                              Last Name
+                              <Typography component="span" className="mandatory">
+                                {" "}
+                                *
+                              </Typography>
+                            </Typography>
+                          </>
+                        }
                         variant="outlined"
                         sx={{
                           width: "30%",
@@ -159,50 +200,83 @@ function App() {
                   />
                 </Stack>
                 <Divider />
-                <Typography className="sectionQuestions">
-                  Day of Week
-                  <Typography component="span" className="mandatory">
-                    *
-                  </Typography>
-                </Typography>
 
-                {/* {errors && <FormHelperText error>{JSON.stringify(errors)}</FormHelperText>} */}
+                {/* Error Message for daysOfWeek */}
+                <Controller
+                  name="daysOfWeek"
+                  control={control}
+                  rules={{
+                    required: {
+                      value: true,
+                      message: "At least one day must be selected",
+                    },
+                  }}
+                  render={({ field, fieldState }) => (
+                    <>
+                      <Stack>
+                        <Typography className="sectionQuestions">
+                          Days of the week
+                          <Typography component="span" className="mandatory">
+                            {" "}
+                            *
+                          </Typography>
+                        </Typography>
 
-                <Stack flexDirection={"row"} justifyContent={"flex-start"} flexWrap="wrap">
-                  {/* Everyday Button */}
-                  <Button variant="contained" onClick={() => setValue("daysOfWeek", daysOfWeek)} sx={{ mr: 5, width: "12rem" }} className="containedButton">
-                    Everyday
-                  </Button>
+                        {(errors.daysOfWeek || fieldState?.error) && <FormHelperText error>{errors?.daysOfWeek?.root?.message || fieldState?.error?.message}</FormHelperText>}
+                      </Stack>
 
-                  {/* Days of the Week */}
-                  {daysOfWeek.map((day, index) => (
-                    <Controller
-                      key={day}
-                      name="daysOfWeek"
-                      control={control}
-                      render={({ field }) => (
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              checked={field.value.includes(day)}
-                              onChange={() => {
-                                setValue("daysOfWeek", field.value.includes(day) ? field.value.filter((d) => d !== day) : [...field.value, day]);
+                      {/* Days of the Week */}
+                      <Stack flexDirection={"row"} justifyContent={"flex-start"} flexWrap="wrap">
+                        {/* Button to select every day */}
+                        <Button
+                          variant="contained"
+                          onClick={() => {
+                            // Select all days when "Everyday" is clicked
+                            setValue("daysOfWeek", daysOfWeek);
+                          }}
+                          sx={{ mr: 5, width: "12rem" }}
+                          className="containedButton"
+                        >
+                          Everyday
+                        </Button>
+
+                        {/* Days of the Week */}
+                        {daysOfWeek.map((day) => {
+                          const isSelected = field.value?.includes(day); // Check if the day is already in the array
+
+                          return (
+                            <FormControlLabel
+                              key={day}
+                              control={
+                                <Checkbox
+                                  checked={isSelected} // Check if the day is selected
+                                  onChange={(e) => {
+                                    const isChecked = e.target.checked; // Get the checked state
+                                    if (isChecked) {
+                                      field.onChange([...field.value, day]); // Append the selected day
+                                    } else {
+                                      field.onChange(field.value.filter((d) => d !== day)); // Remove the day from the array
+                                    }
+                                  }}
+                                />
+                              }
+                              label={day}
+                              sx={{
+                                width: "50%", // Default to 50% for mobile
+                                "@media (min-width: 768px)": {
+                                  width: "auto", // Reset to auto for larger screens
+                                },
                               }}
                             />
-                          }
-                          label={day}
-                          sx={{
-                            width: "50%", // Default to 50% for mobile
-                            "@media (min-width: 768px)": {
-                              width: "auto", // Reset to auto for larger screens
-                            },
-                          }}
-                        />
-                      )}
-                    />
-                  ))}
-                </Stack>
+                          );
+                        })}
+                      </Stack>
+                    </>
+                  )}
+                />
+
                 <Divider />
+                {console.log(errors)}
                 <Stack direction="row">
                   {/* Start Time */}
                   <Stack
@@ -216,13 +290,52 @@ function App() {
                       },
                     }}
                   >
-                    <Typography className="sectionQuestions">
-                      Start Time
-                      <Typography component="span" className="mandatory">
-                        *
+                    <Stack>
+                      <Typography className="sectionQuestions">
+                        Start Time
+                        <Typography component="span" className="mandatory">
+                          {" "}
+                          *
+                        </Typography>
                       </Typography>
-                    </Typography>
-                    <Controller name="startTime" control={control} rules={{ required: "Start time is required" }} render={({ field }) => <TimePicker label="Start Time" value={field.value || null} onChange={(newValue) => field.onChange(newValue)} renderInput={(params) => <TextField {...params} fullWidth error={!!errors.startTime} helperText={errors.startTime?.message} />} ampm />} />
+                      {errors.startTime && <FormHelperText error>{errors.startTime.message}</FormHelperText>}{" "}
+                    </Stack>
+
+                    <Controller
+                      name="startTime"
+                      control={control}
+                      rules={{ required: "Start time is required" }}
+                      render={({ field }) => (
+                        <TimePicker
+                          label={
+                            <>
+                              <Typography>
+                                Start Time
+                                <Typography component="span" className="mandatory">
+                                  {" "}
+                                  *
+                                </Typography>
+                              </Typography>
+                            </>
+                          }
+                          value={field.value || null}
+                          onChange={(newValue) => field.onChange(newValue)}
+                          renderInput={(params) => <TextField {...params} fullWidth error={!!errors.startTime} helperText={errors.startTime?.message} />}
+                          ampm
+                          sx={{
+                            "& .MuiOutlinedInput-notchedOutline": {
+                              borderColor: errors.startTime ? "#d32f2f !important" : undefined, // Red border when error
+                            },
+                            "& .MuiFormLabel-root": {
+                              color: errors.startTime ? "#d32f2f !important" : undefined, // Red label when error
+                            },
+                            "& .MuiFormLabel-root.Mui-focused": {
+                              color: errors.startTime ? "#d32f2f !important" : undefined, // Red label when focused
+                            },
+                          }}
+                        />
+                      )}
+                    />
                   </Stack>
 
                   {/* End Time */}
@@ -237,13 +350,51 @@ function App() {
                       },
                     }}
                   >
-                    <Typography className="sectionQuestions">
-                      End Time
-                      <Typography component="span" className="mandatory">
-                        *
+                    <Stack>
+                      <Typography className="sectionQuestions">
+                        End Time
+                        <Typography component="span" className="mandatory">
+                          {" "}
+                          *
+                        </Typography>
                       </Typography>
-                    </Typography>
-                    <Controller name="endTime" control={control} rules={{ required: "End time is required" }} render={({ field }) => <TimePicker label="End Time" value={field.value || null} onChange={(newValue) => field.onChange(newValue)} renderInput={(params) => <TextField {...params} fullWidth error={!!errors.endTime} helperText={errors.endTime?.message} />} ampm />} />
+                      {errors.endTime && <FormHelperText error>{errors.endTime.message}</FormHelperText>}{" "}
+                    </Stack>
+                    <Controller
+                      name="endTime"
+                      control={control}
+                      rules={{ required: "End time is required" }}
+                      render={({ field }) => (
+                        <TimePicker
+                          label={
+                            <>
+                              <Typography>
+                                End Time
+                                <Typography component="span" className="mandatory">
+                                  {" "}
+                                  *
+                                </Typography>
+                              </Typography>
+                            </>
+                          }
+                          value={field.value || null}
+                          onChange={(newValue) => field.onChange(newValue)}
+                          renderInput={(params) => <TextField {...params} fullWidth error={!!errors.endTime} helperText={errors.endTime?.message} />}
+                          ampm
+                          sx={{
+                            "& .MuiOutlinedInput-notchedOutline": {
+                              borderColor: errors.endTime ? "#d32f2f !important" : undefined, // Red border when error
+                            },
+                            "& .MuiFormLabel-root": {
+                              color: errors.endTime ? "#d32f2f !important" : undefined, // Red label when error
+                            },
+                            "& .MuiFormLabel-root.Mui-focused": {
+                              color: errors.endTime ? "#d32f2f !important" : undefined, // Red label when focused
+                            },
+                          }}
+                        />
+                      )}
+                    />
                   </Stack>
                 </Stack>
                 <Divider />
@@ -251,6 +402,7 @@ function App() {
                   <Typography className="sectionQuestions">
                     Location of Problem
                     <Typography component="span" className="mandatory">
+                      {" "}
                       *
                     </Typography>
                   </Typography>
@@ -284,7 +436,17 @@ function App() {
                           renderInput={(params) => (
                             <TextField
                               {...params}
-                              label="Direction"
+                              label={
+                                <>
+                                  <Typography>
+                                    Direction
+                                    <Typography component="span" className="mandatory">
+                                      {" "}
+                                      *
+                                    </Typography>
+                                  </Typography>
+                                </>
+                              }
                               variant="outlined"
                               sx={{ width: "10rem", mr: 2 }} // Add margin right for spacing
                               error={!!errors.addressDirection}
@@ -298,7 +460,26 @@ function App() {
                       name="addressStreet"
                       control={control}
                       rules={{ required: "Address is required" }} // Make address mandatory if location is address
-                      render={({ field }) => <TextField {...field} label="Address" variant="outlined" sx={{ width: "30rem", mr: "1rem !important" }} error={!!errors.addressStreet} helperText={errors.addressStreet ? errors.addressStreet.message : ""} />}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          label={
+                            <>
+                              <Typography>
+                                Address
+                                <Typography component="span" className="mandatory">
+                                  {" "}
+                                  *
+                                </Typography>
+                              </Typography>
+                            </>
+                          }
+                          variant="outlined"
+                          sx={{ width: "30rem", mr: "1rem !important" }}
+                          error={!!errors.addressStreet}
+                          helperText={errors.addressStreet ? errors.addressStreet.message : ""}
+                        />
+                      )}
                     />
                     <Controller
                       name="addressZipcode"
@@ -313,11 +494,21 @@ function App() {
                       render={({ field, fieldState }) => (
                         <TextField
                           {...field}
-                          label="Zip Code"
+                          label={
+                            <>
+                              <Typography>
+                                Zipcode
+                                <Typography component="span" className="mandatory">
+                                  {" "}
+                                  *
+                                </Typography>
+                              </Typography>
+                            </>
+                          }
                           variant="outlined"
                           sx={{ width: "10rem", mr: 2 }}
-                          error={!!fieldState.error}
-                          helperText={fieldState.error ? fieldState.error.address_message : ""}
+                          error={!!errors.addressStreet}
+                          helperText={errors.addressStreet ? errors.addressZipcode.message : ""}
                           inputProps={{
                             maxLength: 5,
                             onInput: (e) => {
@@ -341,10 +532,58 @@ function App() {
                         control={control}
                         rules={{ required: "Direction is required" }}
                         render={({ field }) => (
-                          <Autocomplete {...field} options={["North", "South", "East", "West"]} onChange={(_, value) => setValue("intersection1Direction", value)} renderInput={(params) => <TextField {...params} label="Direction" variant="outlined" sx={{ width: { xs: "100%", md: "10rem" } }} error={!!errors.intersection1Direction} helperText={errors.intersection1Direction?.message} />} />
+                          <Autocomplete
+                            {...field}
+                            options={["North", "South", "East", "West"]}
+                            onChange={(_, value) => setValue("intersection1Direction", value)}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label={
+                                  <>
+                                    <Typography>
+                                      Direction
+                                      <Typography component="span" className="mandatory">
+                                        {" "}
+                                        *
+                                      </Typography>
+                                    </Typography>
+                                  </>
+                                }
+                                variant="outlined"
+                                sx={{ width: { xs: "50%", md: "10rem" }, mr: "1rem !important" }}
+                                error={!!errors.intersection1Direction}
+                                helperText={errors.intersection1Direction?.message}
+                              />
+                            )}
+                          />
                         )}
                       />
-                      <Controller name="intersection1Street" control={control} rules={{ required: "First Street is required" }} render={({ field }) => <TextField {...field} label="First Street" variant="outlined" sx={{ width: { xs: "100%", md: "30rem" } }} error={!!errors.intersection1Street} helperText={errors.intersection1Street?.message} />} />
+                      <Controller
+                        name="intersection1Street"
+                        control={control}
+                        rules={{ required: "First Street is required" }}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            label={
+                              <>
+                                <Typography>
+                                  First Street
+                                  <Typography component="span" className="mandatory">
+                                    {" "}
+                                    *
+                                  </Typography>
+                                </Typography>
+                              </>
+                            }
+                            variant="outlined"
+                            sx={{ width: { xs: "100%", md: "30rem" } }}
+                            error={!!errors.intersection1Street}
+                            helperText={errors.intersection1Street?.message}
+                          />
+                        )}
+                      />
                     </Stack>
                     <Divider sx={{ display: { xs: "block", md: "none", margin: "2rem 0rem 1rem 0rem !important" } }} />
 
@@ -355,10 +594,58 @@ function App() {
                         control={control}
                         rules={{ required: "Direction is required" }}
                         render={({ field }) => (
-                          <Autocomplete {...field} options={["North", "South", "East", "West"]} onChange={(_, value) => setValue("intersection2Direction", value)} renderInput={(params) => <TextField {...params} label="Direction" variant="outlined" sx={{ width: { xs: "100%", md: "10rem" } }} error={!!errors.intersection2Direction} helperText={errors.intersection2Direction?.message} />} />
+                          <Autocomplete
+                            {...field}
+                            options={["North", "South", "East", "West"]}
+                            onChange={(_, value) => setValue("intersection2Direction", value)}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label={
+                                  <>
+                                    <Typography>
+                                      Direction
+                                      <Typography component="span" className="mandatory">
+                                        {" "}
+                                        *
+                                      </Typography>
+                                    </Typography>
+                                  </>
+                                }
+                                variant="outlined"
+                                sx={{ width: { xs: "50%", md: "10rem" }, mr: "1rem !important" }}
+                                error={!!errors.intersection2Direction}
+                                helperText={errors.intersection2Direction?.message}
+                              />
+                            )}
+                          />
                         )}
                       />
-                      <Controller name="intersection2Street" control={control} rules={{ required: "Second Street is required" }} render={({ field }) => <TextField {...field} label="Second Street" variant="outlined" sx={{ width: { xs: "100%", md: "30rem" } }} error={!!errors.intersection2Street} helperText={errors.intersection2Street?.message} />} />
+                      <Controller
+                        name="intersection2Street"
+                        control={control}
+                        rules={{ required: "Second Street is required" }}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            label={
+                              <>
+                                <Typography>
+                                  Second Street
+                                  <Typography component="span" className="mandatory">
+                                    {" "}
+                                    *
+                                  </Typography>
+                                </Typography>
+                              </>
+                            }
+                            variant="outlined"
+                            sx={{ width: { xs: "100%", md: "30rem" }, mr: "1rem !important" }}
+                            error={!!errors.intersection2Street}
+                            helperText={errors.intersection2Street?.message}
+                          />
+                        )}
+                      />
                       <Controller
                         name="intersectionZipcode"
                         control={control}
@@ -369,7 +656,17 @@ function App() {
                         render={({ field, fieldState }) => (
                           <TextField
                             {...field}
-                            label="Zip Code"
+                            label={
+                              <>
+                                <Typography>
+                                  Zipcode
+                                  <Typography component="span" className="mandatory">
+                                    {" "}
+                                    *
+                                  </Typography>
+                                </Typography>
+                              </>
+                            }
                             variant="outlined"
                             sx={{ width: { xs: "100%", md: "10rem" } }}
                             error={!!fieldState.error}
@@ -400,7 +697,17 @@ function App() {
                       renderInput={(params) => (
                         <TextField
                           {...params}
-                          label="Problem Category"
+                          label={
+                            <>
+                              <Typography>
+                                Problem Category
+                                <Typography component="span" className="mandatory">
+                                  {" "}
+                                  *
+                                </Typography>
+                              </Typography>
+                            </>
+                          }
                           placeholder="Select Problem Type"
                           variant="outlined"
                           error={!!errors.problemCategory} // Show error if validation fails
@@ -430,7 +737,17 @@ function App() {
                   render={({ field }) => (
                     <TextField
                       {...field}
-                      label="Problem Description"
+                      label={
+                        <>
+                          <Typography>
+                            Problem Description
+                            <Typography component="span" className="mandatory">
+                              {" "}
+                              *
+                            </Typography>
+                          </Typography>
+                        </>
+                      }
                       variant="outlined"
                       maxRows={2}
                       helperText={errors.description ? errors.description.message : "Maximum 160 Characters"}
@@ -445,6 +762,7 @@ function App() {
                   <Typography className="sectionQuestions">
                     Do you want to be contacted about this issue?
                     <Typography component="span" className="mandatory">
+                      {" "}
                       *
                     </Typography>
                   </Typography>
@@ -463,6 +781,128 @@ function App() {
                     )}
                   />
                 </Stack>
+                {subscribeToAlerts && (
+                  <Stack flexDirection={"row"} justifyContent={"flex-start"} alignItems="baseline">
+                    {/* Phone Number */}
+                    <Controller
+                      name="phone"
+                      control={control}
+                      rules={{
+                        required: subscribeToAlerts && !getValues("email") ? "Phone number or email is required" : false,
+                        pattern: {
+                          value: /^\(\d{3}\) \d{3}-\d{4}$/,
+                          message: "Phone number must be in the format (xxx) xxx-xxxx",
+                        },
+                        minLength: {
+                          value: 14,
+                          message: "Phone number must be exactly 10 digits",
+                        },
+                        maxLength: {
+                          value: 14,
+                          message: "Phone number must be exactly 10 digits",
+                        },
+                      }}
+                      render={({ field, fieldState }) => {
+                        const handleChange = (e) => {
+                          let value = e.target.value.replace(/\D/g, ""); // Remove all non-digits
+                          if (value.length <= 10) {
+                            value = value.replace(/(\d{3})(\d{3})(\d{4})/, "($1) $2-$3");
+                          }
+                          field.onChange(value);
+
+                          if (value.length > 0) {
+                            setValue("email", getValues("email"), { shouldValidate: false });
+                            trigger("email");
+                          }
+                        };
+
+                        return (
+                          <TextField
+                            {...field}
+                            value={field.value || ""}
+                            label={
+                              <>
+                                <Typography>
+                                  Phone Number
+                                  {subscribeToAlerts && (
+                                    <Typography component="span" className="mandatory">
+                                      {" "}
+                                      *
+                                    </Typography>
+                                  )}
+                                </Typography>
+                              </>
+                            }
+                            variant="outlined"
+                            sx={{
+                              width: "30%",
+                              "@media (max-width: 768px)": {
+                                width: "50%",
+                                mr: 2,
+                              },
+                            }}
+                            onChange={handleChange}
+                            error={!!fieldState?.error}
+                            helperText={fieldState?.error?.message}
+                          />
+                        );
+                      }}
+                    />
+
+                    <Typography variant="body1" sx={{ width: "auto", textAlign: "center", mx: 2 }}>
+                      or
+                    </Typography>
+
+                    {/* Email */}
+                    <Controller
+                      name="email"
+                      control={control}
+                      rules={{
+                        required: subscribeToAlerts && !getValues("phone") ? "Phone number or email is required" : false,
+                        pattern: {
+                          value: /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                          message: "Please enter a valid email address",
+                        },
+                      }}
+                      render={({ field, fieldState }) => (
+                        <TextField
+                          {...field}
+                          label={
+                            <>
+                              <Typography>
+                                Email
+                                {subscribeToAlerts && (
+                                  <Typography component="span" className="mandatory">
+                                    {" "}
+                                    *
+                                  </Typography>
+                                )}
+                              </Typography>
+                            </>
+                          }
+                          variant="outlined"
+                          sx={{
+                            width: "30%",
+                            "@media (max-width: 768px)": {
+                              width: "50%",
+                            },
+                          }}
+                          onChange={(e) => {
+                            field.onChange(e.target.value);
+
+                            // Remove required validation from phone if email is filled
+                            if (e.target.value.length > 0) {
+                              setValue("phone", getValues("phone"), { shouldValidate: false });
+                              trigger("phone"); // Revalidate phone field
+                            }
+                          }}
+                          error={!!fieldState?.error}
+                          helperText={fieldState?.error ? fieldState?.error?.message : ""}
+                        />
+                      )}
+                    />
+                  </Stack>
+                )}
                 <Button variant="contained" sx={{ width: "50%", mb: 5 }} className="containedButton" type="submit">
                   Submit Complaint
                 </Button>
