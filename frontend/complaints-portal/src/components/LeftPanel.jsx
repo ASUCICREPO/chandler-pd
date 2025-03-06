@@ -35,7 +35,7 @@ const LeftPanel = () => {
   return (
     <Stack className="leftPanelContainer">
       {/* Header Section */}
-      <Stack className="leftPanelHeader" alignItems={"center"} spacing={1.5}>
+      <Stack className="leftPanelHeader" alignItems={"center"} spacing={1.5} justifyContent={"center"}>
         <img src={logo} width={72} height={86} alt="Logo" />
         <Typography className="leftPanelHeaderTitle">Chandler Police Department</Typography>
       </Stack>

@@ -13,7 +13,7 @@ function App() {
           <Box sx={{ width: "20rem" }}>
             <LeftPanel />
           </Box>
-          <Box sx={{ width: "calc(100% - 20rem)" }}>
+          <Box sx={{ width: "calc(100% - 20rem)", overflowY: "hidden" }}>
             <MainPage />
           </Box>
         </Stack>
