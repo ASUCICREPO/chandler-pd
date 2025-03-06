@@ -1,0 +1,18 @@
+@font-face {
+  font-family: "Inter";
+  src: url("./assets/fonts/Inter-Font.woff2") format("woff2"), url("./assets/fonts/Inter-Font.woff") format("woff"), url("./assets/fonts/Inter-Font.ttf") format("truetype"), url("./assets/fonts/Inter-Font.eot") format("embedded-opentype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Apply Inter to the entire app */
+body {
+  font-family: "Inter", sans-serif;
+}
+
+.MuiTypography-root,
+.MuiButton-root,
+.MuiInputBase-input,
+.MuiFormHelperText-root {
+  font-family: "Inter" !important;
+}
