@@ -16,3 +16,30 @@ body {
 .MuiFormHelperText-root {
   font-family: "Inter" !important;
 }
+
+.leftPanelContainer {
+  background: #fffffc;
+  border-right: 1px solid rgba(0, 0, 0, 0.2);
+  height: 100%;
+}
+.leftPanelHeader {
+  background: #333a45;
+  padding: 2rem;
+}
+.leftPanelHeaderTitle.MuiTypography-root {
+  font-weight: 600;
+  font-size: 18px;
+  color: #ffffff;
+}
+.listItemButton.MuiListItemButton-root,
+.logoutButton.MuiListItemButton-root {
+  padding: 20px 10px;
+  height: 64px;
+
+  border-radius: 5px 5px 0px 0px;
+}
+.listItemButton.MuiListItemButton-root.Mui-selected,
+.listItemButton.MuiListItemButton-root.Mui-selected:hover {
+  background: #fdf9f2;
+  border-bottom: 2px solid #d8833b;
+}
