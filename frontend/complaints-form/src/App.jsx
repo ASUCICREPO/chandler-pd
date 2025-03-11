@@ -3,24 +3,25 @@ import "./App.css";
 import Stack from "@mui/material/Stack";
 import logo from "./assets/logo.png";
 import { useForm, useFieldArray, Controller, useWatch } from "react-hook-form";
-import { Autocomplete, Button, Checkbox, Divider, FormControlLabel, FormHelperText, Radio, RadioGroup, TextField, Typography } from "@mui/material";
+import { Autocomplete, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, Divider, FormControlLabel, FormHelperText, Radio, RadioGroup, TextField, Typography } from "@mui/material";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
-
+import success from "./assets/success.gif";
 // Enable UTC plugin
 dayjs.extend(utc);
 
 const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const problemCategoryOptions = ["Speed", "Stop sign", "Red light", "School traffic complaint", "Racing", "Reckless Driving"];
-
+const API_URL = import.meta.env.VITE_API_URL;
 function App() {
   const {
     control,
     handleSubmit,
     getValues,
+    reset,
     setValue,
     watch,
     formState: { errors },
@@ -47,6 +48,8 @@ function App() {
       subscribeToAlerts: null,
       email: "",
       phone: "",
+      officersNote: "",
+      beatNumber: "",
     },
   });
   const { fields, append, remove } = useFieldArray({
@@ -55,15 +58,57 @@ function App() {
   });
   const subscribeToAlerts = watch("subscribeToAlerts"); // Watch checkbox state
   const location = watch("location"); // Watch checkbox state
-  const onSubmit = (data) => {
-    const startTimeUTC = data.startTime ? dayjs(data.startTime).utc().toISOString() : null;
-    const endTimeUTC = data.endTime ? dayjs(data.endTime).utc().toISOString() : null;
-    if (data.location === "address") {
-      data = { ...data, intersection1Direction: "", intersection1Street: "", intersection2Direction: "", intersection2Street: "", intersectionZipcode: "", startTime: startTimeUTC, endTime: endTimeUTC };
-    } else {
-      data = { ...data, addressDirection: "", addressStreet: "", addressZipcode: "", startTime: startTimeUTC, endTime: endTimeUTC };
+  const [open, setOpen] = useState(false); // State to control popup
+
+  const onSubmit = async (data) => {
+    try {
+      const startTimeUTC = data.startTime ? dayjs(data.startTime).utc().toISOString() : null;
+      const endTimeUTC = data.endTime ? dayjs(data.endTime).utc().toISOString() : null;
+
+      let formattedData = {
+        ...data,
+        startTime: startTimeUTC,
+        endTime: endTimeUTC,
+      };
+
+      if (data.location === "address") {
+        formattedData = {
+          ...formattedData,
+          intersection1Direction: "",
+          intersection1Street: "",
+          intersection2Direction: "",
+          intersection2Street: "",
+          intersectionZipcode: "",
+        };
+      } else {
+        formattedData = {
+          ...formattedData,
+          addressDirection: "",
+          addressStreet: "",
+          addressZipcode: "",
+        };
+      }
+
+      // console.log("Submitting Data:", formattedData);
+
+      const response = await fetch(`${API_URL}/Development`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formattedData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      reset();
+      setOpen(true);
+      alert("Submission Successful!");
+    } catch (error) {
+      console.error("Error submitting data:", error);
+      alert("Submission Failed. Please try again.");
     }
-    console.log({ ...data, startTime: startTimeUTC, endTime: endTimeUTC });
   };
 
   return (
@@ -276,7 +321,6 @@ function App() {
                 />
 
                 <Divider />
-                {console.log(errors)}
                 <Stack direction="row">
                   {/* Start Time */}
                   <Stack
@@ -911,6 +955,20 @@ function App() {
           </Stack>
         </LocalizationProvider>
       </form>
+      <Dialog open={open} onClose={() => setOpen(false)}>
+        {/* <DialogTitle>Complaint Submitted</DialogTitle> */}
+        <DialogContent sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <>
+            <img src={success} alt="Success" style={{ width: "120px", height: "120px" }} />
+            <Typography>Your complaint has been successfully registered.</Typography>
+          </>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpen(false)} color="primary">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

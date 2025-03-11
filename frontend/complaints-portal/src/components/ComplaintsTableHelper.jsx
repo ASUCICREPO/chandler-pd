@@ -334,3 +334,25 @@ export const rowsDump = [
     phone: "777-987-6543",
   },
 ];
+
+// filters = [
+//   {
+//     key: "beatNumber",
+//     value: "B1650",
+//     operator: "=",
+//   },
+//   {
+//     key: "problemCategory",
+//     value: "Disturbance",
+//     operator: "=",
+//   },
+//   {
+//     key: "description",
+//     value: "disruptive behavior",
+//     operator: "contains",
+//   },
+// ];
+
+// Editor
+// 1. Cannot edit - status, beat number, email, notes
+// Backend to not check the auth
