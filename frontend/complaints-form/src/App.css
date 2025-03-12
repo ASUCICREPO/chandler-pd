@@ -16,9 +16,7 @@ body {
 .MuiFormHelperText-root {
   font-family: "Inter" !important;
 }
-.containedButton.MuiButtonBase-root {
-  background-color: #333a45;
-}
+
 .sectionTitle.MuiTypography-root {
   font-family: "Inter";
   font-style: normal;
@@ -44,7 +42,7 @@ body {
   font-weight: 700;
   font-size: 30px;
   line-height: 36px;
-  padding-top: 3rem;
+  padding-top: 2rem;
 }
 
 .mandatory {

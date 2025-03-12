@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 import Stack from "@mui/material/Stack";
 import logo from "./assets/logo.png";
 import { useForm, useFieldArray, Controller, useWatch } from "react-hook-form";
-import { Autocomplete, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, Divider, FormControlLabel, FormHelperText, Radio, RadioGroup, TextField, Typography } from "@mui/material";
+import { Autocomplete, Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, Divider, FormControlLabel, FormHelperText, LinearProgress, Radio, RadioGroup, TextField, Typography } from "@mui/material";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -52,13 +52,48 @@ function App() {
       beatNumber: "",
     },
   });
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: "daysOfWeek", // Name of the field array
-  });
-  const subscribeToAlerts = watch("subscribeToAlerts"); // Watch checkbox state
-  const location = watch("location"); // Watch checkbox state
+
   const [open, setOpen] = useState(false); // State to control popup
+
+  const [progress, setProgress] = useState(0);
+  const watchedFields = watch();
+  // Total fields that need to be tracked
+
+  // Progress calculation based on field values
+  useEffect(() => {
+    let totalFields = 9;
+    let filledFields = 0;
+
+    // Check if mandatory fields are filled
+    if (watchedFields.firstName) filledFields++;
+    if (watchedFields.lastName) filledFields++;
+    if (watchedFields.daysOfWeek.length > 0) filledFields++;
+    if (watchedFields.startTime) filledFields++;
+    if (watchedFields.endTime) filledFields++;
+    if (watchedFields.problemCategory) filledFields++;
+    if (watchedFields.description) filledFields++;
+
+    // Check location-specific fields
+    if (watchedFields.location === "intersection") {
+      if (watchedFields.intersection1Direction && watchedFields.intersection1Street && watchedFields.intersection2Direction && watchedFields.intersection2Street && watchedFields.intersectionZipcode) {
+        filledFields += 1;
+      }
+    } else if (watchedFields.location === "address") {
+      if (watchedFields.addressDirection && watchedFields.addressStreet && watchedFields.addressZipcode) {
+        filledFields += 1;
+      }
+    }
+
+    // Check if subscribeToAlerts is "yes" and at least one contact method is provided
+    if (watchedFields.subscribeToAlerts === "yes") {
+      if (watchedFields.email || watchedFields.phone) {
+        filledFields += 1; // Account for email/phone
+      }
+    }
+
+    // Calculate progress
+    setProgress((filledFields / totalFields) * 100);
+  }, [watchedFields]);
 
   const onSubmit = async (data) => {
     try {
@@ -122,7 +157,7 @@ function App() {
               spacing={8}
               sx={{
                 height: "7rem",
-                background: "#333A45",
+                bgcolor: "primary.main",
                 pl: "15%",
                 pr: "15%",
                 mt: 0,
@@ -137,7 +172,7 @@ function App() {
                 Chandler Police Department
               </Typography>
             </Stack>
-
+            <LinearProgressWithLabel value={progress} />
             <Stack
               sx={{
                 textAlign: "start",
@@ -157,7 +192,7 @@ function App() {
 
                 <Typography variant="body1">Check box if NOT an active event</Typography>
                 <Stack flexDirection={"row"} sx={{ border: "1px solid grey", p: "1rem" }}>
-                  <Controller name="isUrgentChecked" control={control} render={({ field }) => <Checkbox {...field} checked={field.value} sx={{ color: "#333A45 !important" }} />} />
+                  <Controller name="isUrgentChecked" control={control} render={({ field }) => <Checkbox {...field} checked={field.value} />} />
                   <Typography variant="body1">If you have an issue, such as active street racing, illegally parked vehicles, or other active traffic events, please call dispatch at 480-782-4130 to make your report. Issues entered in Traffic Complaint Form can take up to 7 days to respond.</Typography>
                 </Stack>
               </Stack>
@@ -466,7 +501,7 @@ function App() {
                   />
                 </Stack>
                 {/* Show Address Input Fields when "Address" is selected */}
-                {location === "address" && (
+                {watchedFields.location === "address" && (
                   <Stack flexDirection={{ xs: "column", md: "row" }} spacing={{ xs: 2, md: 0 }} justifyContent={"flex-start"} flexWrap="wrap">
                     <Controller
                       name="addressDirection"
@@ -567,7 +602,7 @@ function App() {
                 )}
                 {/* intersection1Direction: "", intersection1Street: "", intersection2Direction: "", intersection2Street: "", intersectionZipcode: "", */}
                 {/* Show Intersection Input Fields when "Intersection" is selected */}
-                {location === "intersection" && (
+                {watchedFields.location === "intersection" && (
                   <Stack direction="column" spacing={2}>
                     {/* First Intersection Row */}
                     <Stack flexDirection={{ xs: "column", md: "row" }} spacing={2} flexWrap="wrap" alignItems={{ md: "flex-end" }}>
@@ -825,14 +860,14 @@ function App() {
                     )}
                   />
                 </Stack>
-                {subscribeToAlerts && (
+                {watchedFields.subscribeToAlerts === "yes" && (
                   <Stack flexDirection={"row"} justifyContent={"flex-start"} alignItems="baseline">
                     {/* Phone Number */}
                     <Controller
                       name="phone"
                       control={control}
                       rules={{
-                        required: subscribeToAlerts && !getValues("email") ? "Phone number or email is required" : false,
+                        required: watchedFields.subscribeToAlerts && !getValues("email") ? "Phone number or email is required" : false,
                         pattern: {
                           value: /^\(\d{3}\) \d{3}-\d{4}$/,
                           message: "Phone number must be in the format (xxx) xxx-xxxx",
@@ -868,7 +903,7 @@ function App() {
                               <>
                                 <Typography>
                                   Phone Number
-                                  {subscribeToAlerts && (
+                                  {watchedFields.subscribeToAlerts && (
                                     <Typography component="span" className="mandatory">
                                       {" "}
                                       *
@@ -902,7 +937,7 @@ function App() {
                       name="email"
                       control={control}
                       rules={{
-                        required: subscribeToAlerts && !getValues("phone") ? "Phone number or email is required" : false,
+                        required: watchedFields.subscribeToAlerts && !getValues("phone") ? "Phone number or email is required" : false,
                         pattern: {
                           value: /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
                           message: "Please enter a valid email address",
@@ -915,7 +950,7 @@ function App() {
                             <>
                               <Typography>
                                 Email
-                                {subscribeToAlerts && (
+                                {watchedFields.subscribeToAlerts && (
                                   <Typography component="span" className="mandatory">
                                     {" "}
                                     *
@@ -980,3 +1015,34 @@ const Container = ({ title }) => (
 );
 
 export default App;
+const LinearProgressWithLabel = ({ value }) => {
+  return (
+    <Box
+      sx={{
+        background: "#fff",
+        pl: "15%",
+        pr: "15%",
+        mt: 2,
+        mb: 2,
+        position: "sticky",
+        top: 0,
+        zIndex: 1000,
+        "@media (max-width: 768px)": {
+          pl: "2rem",
+          pr: "2rem",
+        },
+      }}
+    >
+      <Typography sx={{ justifySelf: "flex-start" }} variant="body1">
+        Form Completion Percentage
+      </Typography>
+
+      <Box sx={{ display: "flex", alignItems: "center", width: "100%" }}>
+        <Box sx={{ width: "100%", mr: 2 }}>
+          <LinearProgress variant="determinate" value={value} />
+        </Box>
+        <Typography variant="body2" color="text.secondary">{`${Math.round(value)}%`}</Typography>
+      </Box>
+    </Box>
+  );
+};
