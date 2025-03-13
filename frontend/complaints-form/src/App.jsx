@@ -50,6 +50,7 @@ function App() {
       phone: "",
       officersNote: "",
       beatNumber: "",
+      complaintStatus: "",
     },
   });
 
