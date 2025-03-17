@@ -11,32 +11,32 @@ const statusColors = {
 };
 
 const ComplaintsTable = () => {
-  const [anchorEl, setAnchorEl] = React.useState(null);
-  const [status, setStatus] = React.useState("");
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [status, setStatus] = useState("");
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
-  const open = Boolean(anchorEl);
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
 
-  const handleClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const handleStatusChange = (newStatus) => {
     setStatus(newStatus);
     setAnchorEl(null); // Close menu after selection
   };
-  const columnsDump = [
-    { field: "dateOfComplaint", headerName: "Date", width: 150 },
-    { field: "beatNumber", headerName: "Beat Number", width: 150 },
 
-    { field: "problemCategory", headerName: "Category", width: 200 },
+  const columnsDump = [
+    { field: "dateOfComplaint", headerName: "Date", minWidth: 125, flex: 1 },
+    { field: "beatNumber", headerName: "Beat", minWidth: 100, flex: 1 },
     {
-      field: "description",
-      headerName: "Description",
-      width: 600,
+      field: "problemCategory",
+      headerName: "Category",
+      minWidth: 150,
+      flex: 2,
       renderCell: (params) => (
         <div
           style={{
@@ -44,18 +44,89 @@ const ComplaintsTable = () => {
             wordWrap: "break-word",
             overflowWrap: "break-word",
             wordBreak: "break-word",
-            lineHeight: "1.5", // Add line height for better readability
+            lineHeight: "1.5",
+          }}
+        >
+          {params.row.problemCategory}
+        </div>
+      ),
+    },
+    {
+      field: "description",
+      headerName: "Description",
+      minWidth: 400,
+      flex: 4,
+      renderCell: (params) => (
+        <div
+          style={{
+            whiteSpace: "normal",
+            wordWrap: "break-word",
+            overflowWrap: "break-word",
+            wordBreak: "break-word",
+            lineHeight: "1.5",
           }}
         >
           {params.row.description}
         </div>
       ),
     },
-    { field: "complaintStatus", headerName: "Complaint Status", width: 200, renderCell: (params) => <ComplaintStatusCell value={params.row.complaintStatus} id={params.row.id} onChange={handleStatusChange} /> },
-    { field: "location", headerName: "Location", width: 150 },
+    {
+      field: "complaintStatus",
+      headerName: "Status",
+      minWidth: 200,
+      flex: 1,
+      renderCell: (params) => <ComplaintStatusCell value={params.row.complaintStatus} id={params.id} onChange={handleStatusChange} />,
+    },
+    {
+      field: "location",
+      headerName: "Location",
+      minWidth: 200,
+      flex: 2,
+      renderCell: (params) => (
+        <div
+          style={{
+            whiteSpace: "normal",
+            wordWrap: "break-word",
+            overflowWrap: "break-word",
+            wordBreak: "break-word",
+            lineHeight: "1.5",
+          }}
+        >
+          {params.row.location === "address" ? `${params.row.addressDirection} ${params.row.addressStreet}, ${params.row.addressZipcode}` : params.row.location === "intersection" ? `${params.row.intersection1Direction} ${params.row.intersection1Street} & ${params.row.intersection2Direction} ${params.row.intersection2Street}, ${params.row.intersectionZipcode}` : "N/A"}
+        </div>
+      ),
+    },
+    {
+      field: "reporter",
+      headerName: "Reported By",
+      minWidth: 200,
+      flex: 2,
+      valueGetter: (val, params) => {
+        const { firstName, lastName, email, phone } = params;
+        return `${firstName} ${lastName}${email ? ` (${email})` : phone ? ` (${phone})` : ""}`;
+      },
+    },
+    {
+      field: "daysOfWeek",
+      headerName: "Days",
+      width: 160,
+      renderCell: (params) => params.row.daysOfWeek?.join(", ") || "N/A",
+    },
+    {
+      field: "timeRange",
+      headerName: "Time",
+      width: 160,
+      valueGetter: (val, params) => (params.startTime && params.endTime ? `${params.startTime} - ${params.endTime}` : "N/A"),
+    },
   ];
+
+  // Columns to be hidden initially
+  const hiddenColumns = ["location", "reporter", "daysOfWeek", "timeRange"];
+  const [columnVisibilityModel, setColumnVisibilityModel] = useState(hiddenColumns.reduce((acc, col) => ({ ...acc, [col]: false }), {}));
+
   const [rows, setRows] = useState(rowsDump);
   const [columns, setColumns] = useState(columnsDump);
+
   useEffect(() => {
     setRows(rowsDump);
     setColumns(columnsDump);
@@ -64,21 +135,24 @@ const ComplaintsTable = () => {
   const paginationModel = { page: 0, pageSize: 10 };
 
   return (
-    <div style={{ width: "100%", height: "100%", overflow: "auto" }}>
+    <div style={{ width: "100%", height: "100%", overflowX: "auto" }}>
       <DataGrid
         rows={rows}
-        columns={columns}
+        columns={isMobile ? columns.filter((col) => !hiddenColumns.includes(col.field)) : columns}
         initialState={{ pagination: { paginationModel } }}
-        pageSizeOptions={10}
+        pageSizeOptions={[5, 10, 20]}
         disableSelectionOnClick
         rowHeight={72}
         checkboxSelection
+        disableColumnFilter
+        columnVisibilityModel={columnVisibilityModel}
+        onColumnVisibilityModelChange={(newModel) => setColumnVisibilityModel(newModel)}
         slots={{
           footer: CustomFooter,
         }}
         sx={{
-          height: "auto", // Adjust height based on content
-          minHeight: "72px", // Ensures a minimum height for the grid
+          minHeight: "400px",
+          width: "100%",
           "& .MuiDataGrid-cell--textLeft": {
             alignContent: "center",
           },
@@ -89,26 +163,31 @@ const ComplaintsTable = () => {
           "& .MuiDataGrid-virtualScroller": {
             height: "calc(100vh - 14rem)",
           },
-          "& .MuiDataGrid-columnHeader.MuiDataGrid-columnHeader--sortable, .MuiDataGrid-columnHeader.MuiDataGrid-columnHeader--alignCenter.MuiDataGrid-withBorderColor.MuiDataGrid-columnHeaderCheckbox": {
+          "& .MuiDataGrid-columnHeader": {
             backgroundColor: "#333A45",
             color: "#FFFFFF",
           },
           "& .MuiDataGrid-columnHeaderTitleContainer .MuiCheckbox-root, & .MuiDataGrid-columnHeaderTitleContainer .MuiIconButton-root, & .MuiDataGrid-menuIconButton": {
             color: "#FFFFFF !important",
           },
-          "@media (max-width:600px)": {
+          "@media (max-width: 768px)": {
             "& .MuiDataGrid-cell": {
-              fontSize: "0.75rem", // Reduce font size for small screens
+              fontSize: "0.75rem",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "start",
+              justifyContent: "center",
             },
-          },
-          "@media (max-width:900px)": {
-            "& .MuiDataGrid-cell": {
-              fontSize: "0.8rem", // Slightly smaller for medium screens
+            "& .MuiDataGrid-columnHeader": {
+              fontSize: "0.8rem",
             },
-          },
-          "@media (max-width:1200px)": {
-            "& .MuiDataGrid-cell": {
-              fontSize: "1rem", // Slightly larger for larger screens
+            "& .MuiDataGrid-columnHeaders": {
+              display: "none",
+            },
+            "& .MuiDataGrid-row": {
+              flexDirection: "column",
+              padding: "8px",
+              borderBottom: "1px solid #ddd",
             },
           },
         }}
