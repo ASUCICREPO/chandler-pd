@@ -2,20 +2,23 @@ import { useEffect, useState } from "react";
 import "./App.css";
 import Stack from "@mui/material/Stack";
 import logo from "./assets/logo.png";
-import { useForm, useFieldArray, Controller, useWatch } from "react-hook-form";
+import success from "./assets/success.gif";
+import loadinggif from "./assets/loading.gif";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { Autocomplete, Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, Divider, FormControlLabel, FormHelperText, LinearProgress, Radio, RadioGroup, TextField, Typography } from "@mui/material";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
-import success from "./assets/success.gif";
+
 // Enable UTC plugin
 dayjs.extend(utc);
 
 const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const problemCategoryOptions = ["Speed", "Stop sign", "Red light", "School traffic complaint", "Racing", "Reckless Driving"];
 const API_URL = import.meta.env.VITE_API_URL;
+
 function App() {
   const {
     control,
@@ -53,7 +56,7 @@ function App() {
       complaintStatus: "",
     },
   });
-
+  const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false); // State to control popup
 
   const [progress, setProgress] = useState(0);
@@ -91,12 +94,19 @@ function App() {
         filledFields += 1; // Account for email/phone
       }
     }
+    // Check if subscribeToAlerts is "no" for no contact shared
+
+    if (watchedFields.subscribeToAlerts === "no") {
+      filledFields += 1; // Account for no contact shared
+    }
 
     // Calculate progress
     setProgress((filledFields / totalFields) * 100);
   }, [watchedFields]);
 
   const onSubmit = async (data) => {
+    setLoading(true);
+    setOpen(true);
     try {
       const startTimeUTC = data.startTime ? dayjs(data.startTime).utc().toISOString() : null;
       const endTimeUTC = data.endTime ? dayjs(data.endTime).utc().toISOString() : null;
@@ -138,12 +148,14 @@ function App() {
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
+      setLoading(false);
       reset();
-      setOpen(true);
-      alert("Submission Successful!");
+      if (!open) {
+        setOpen(true);
+      }
     } catch (error) {
       console.error("Error submitting data:", error);
-      alert("Submission Failed. Please try again.");
+      setLoading(false);
     }
   };
 
@@ -904,7 +916,7 @@ function App() {
                               <>
                                 <Typography>
                                   Phone Number
-                                  {watchedFields.subscribeToAlerts && (
+                                  {watchedFields.subscribeToAlerts && !getValues("email") && (
                                     <Typography component="span" className="mandatory">
                                       {" "}
                                       *
@@ -951,7 +963,7 @@ function App() {
                             <>
                               <Typography>
                                 Email
-                                {watchedFields.subscribeToAlerts && (
+                                {watchedFields.subscribeToAlerts && !getValues("phone") && (
                                   <Typography component="span" className="mandatory">
                                     {" "}
                                     *
@@ -994,10 +1006,19 @@ function App() {
       <Dialog open={open} onClose={() => setOpen(false)}>
         {/* <DialogTitle>Complaint Submitted</DialogTitle> */}
         <DialogContent sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <>
-            <img src={success} alt="Success" style={{ width: "120px", height: "120px" }} />
-            <Typography>Your complaint has been successfully registered.</Typography>
-          </>
+          {loading ? (
+            <>
+              <>
+                <img src={loadinggif} alt="Loading" style={{ width: "120px", height: "120px" }} />
+                <Typography>Please wait while we process your request</Typography>
+              </>
+            </>
+          ) : (
+            <>
+              <img src={success} alt="Success" style={{ width: "120px", height: "120px" }} />
+              <Typography>Your complaint has been successfully registered.</Typography>
+            </>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)} color="primary">
