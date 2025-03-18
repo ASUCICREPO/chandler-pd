@@ -76,12 +76,12 @@ const Filters = () => {
       problemCategory: filters.problemCategory ? [filters.problemCategory] : [],
       startDate: filters.dateRange[0] ? formatDate(filters.dateRange[0]) : "",
       endDate: filters.dateRange[1] ? formatDate(filters.dateRange[1]) : "",
-      startTime: filters.timeRange?.[0] ? formatTime(filters.timeRange[0]) : "",
-      endTime: filters.timeRange?.[1] ? formatTime(filters.timeRange[1]) : "",
-      // startTime: "10:00:00",
-      // endTime: "11:00:00",
+      // startTime: filters.timeRange?.[0] ? formatTime(filters.timeRange[0]) : "",
+      // endTime: filters.timeRange?.[1] ? formatTime(filters.timeRange[1]) : "",
+      startTime: filters.timeRange?.[0] ? filters.timeRange[0] : "",
+      endTime: filters.timeRange?.[1] ? filters.timeRange[1] : "",
 
-      complaintStatus: filters.complaintStatus ? [filters.complaintStatus] : [],
+      complaintStatus: filters.complaintStatus ? filters.complaintStatus : [],
       page: filters.page || "1", // Default to page 1 if not set
     };
     setLoading(true);
@@ -99,6 +99,8 @@ const Filters = () => {
       }
 
       const responseData = await response.json();
+      const uniqueBeatNumbers = [...new Set(responseData.complaintsData.map((complaint) => complaint.beatNumber))];
+      setBeatOptions(uniqueBeatNumbers);
       setComplaints(responseData.complaintsData || dummyRows);
       setLoading(false);
     } catch (error) {
@@ -107,7 +109,7 @@ const Filters = () => {
     }
   };
   useEffect(() => {
-    setBeatOptions(["Beat 1", "Beat 2"]);
+    setBeatOptions(["11", "14"]);
     applyFilters();
   }, []); // Triggers whenever `filters` changes
 

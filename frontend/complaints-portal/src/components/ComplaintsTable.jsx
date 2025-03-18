@@ -5,6 +5,7 @@ import { ComplaintStatusCell, CustomFooter, rowsDump } from "./ComplaintsTableHe
 import useStore from "../store/store";
 import nodata from "../assets/nodata.gif";
 import { Skeleton } from "@mui/material";
+import dayjs from "dayjs";
 
 const statusColors = {
   Open: "#318D00",
@@ -35,7 +36,13 @@ const ComplaintsTable = () => {
   };
 
   const columnsDump = [
-    { field: "dateOfComplaint", headerName: "Date", minWidth: 125, flex: 1 },
+    {
+      field: "dateOfComplaint",
+      headerName: "Date",
+      minWidth: 125,
+      flex: 1,
+      valueGetter: (params) => (params ? dayjs(params).format("MM/DD/YYYY") : ""),
+    },
     { field: "beatNumber", headerName: "Beat", minWidth: 100, flex: 1 },
     {
       field: "problemCategory",
