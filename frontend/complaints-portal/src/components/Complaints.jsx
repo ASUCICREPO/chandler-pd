@@ -1,6 +1,7 @@
 import { Stack, Typography } from "@mui/material";
 import Filters from "./Filters";
 import ComplaintsTable from "./ComplaintsTable";
+import React from "react";
 
 const Complaints = () => {
   return (
@@ -20,4 +21,4 @@ const Complaints = () => {
   );
 };
 
-export default Complaints;
+export default React.memo(Complaints);

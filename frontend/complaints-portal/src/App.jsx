@@ -4,6 +4,7 @@ import "./App.css";
 import { Box, Stack } from "@mui/material";
 import LeftPanel from "./components/LeftPanel";
 import MainPage from "./components/MainPage";
+import React, { useEffect } from "react";
 
 function App() {
   return (
@@ -22,4 +23,4 @@ function App() {
   );
 }
 
-export default App;
+export default React.memo(App);

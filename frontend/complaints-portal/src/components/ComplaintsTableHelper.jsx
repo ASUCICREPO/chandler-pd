@@ -27,14 +27,14 @@ export const CustomFooter = () => {
       <GridPagination />
 
       {/* Right-aligned buttons */}
-      <Box sx={{ display: "flex", gap: "10px" }}>
+      {/* <Box sx={{ display: "flex", gap: "10px" }}>
         <Button variant="contained" color="primary">
           Export
         </Button>
         <Button variant="outlined" color="secondary">
           Refresh
         </Button>
-      </Box>
+      </Box> */}
     </Box>
   );
 };
@@ -109,7 +109,7 @@ const StyledMenu = styled((props) => (
 
 export const rowsDump = [
   {
-    id: 1,
+    complaintId: 1,
     firstName: "John",
     lastName: "Doe",
     daysOfWeek: ["Monday", "Wednesday"],
@@ -134,7 +134,7 @@ export const rowsDump = [
     phone: "123-456-7890",
   },
   {
-    id: 2,
+    complaintId: 2,
     firstName: "Jane",
     lastName: "Smith",
     daysOfWeek: ["Tuesday", "Thursday"],
@@ -159,7 +159,7 @@ export const rowsDump = [
     phone: "987-654-3210",
   },
   {
-    id: 3,
+    complaintId: 3,
     firstName: "Mike",
     lastName: "Johnson",
     daysOfWeek: ["Friday"],
@@ -184,7 +184,7 @@ export const rowsDump = [
     phone: "555-123-4567",
   },
   {
-    id: 4,
+    complaintId: 4,
     firstName: "Emily",
     lastName: "Davis",
     daysOfWeek: ["Saturday", "Sunday"],
@@ -209,7 +209,7 @@ export const rowsDump = [
     phone: "444-789-1234",
   },
   {
-    id: 5,
+    complaintId: 5,
     firstName: "Robert",
     lastName: "Wilson",
     daysOfWeek: ["Monday"],
@@ -234,7 +234,7 @@ export const rowsDump = [
     phone: "333-456-7890",
   },
   {
-    id: 6,
+    complaintId: 6,
     firstName: "Sarah",
     lastName: "Brown",
     daysOfWeek: ["Tuesday"],
@@ -259,7 +259,7 @@ export const rowsDump = [
     phone: "222-789-1234",
   },
   {
-    id: 7,
+    complaintId: 7,
     firstName: "James",
     lastName: "Anderson",
     daysOfWeek: ["Thursday"],
@@ -284,7 +284,7 @@ export const rowsDump = [
     phone: "111-456-7890",
   },
   {
-    id: 8,
+    complaintId: 8,
     firstName: "Jessica",
     lastName: "Martinez",
     daysOfWeek: ["Saturday"],
@@ -309,7 +309,7 @@ export const rowsDump = [
     phone: "666-123-4567",
   },
   {
-    id: 9,
+    complaintId: 9,
     firstName: "Daniel",
     lastName: "Taylor",
     daysOfWeek: ["Sunday"],
@@ -334,25 +334,30 @@ export const rowsDump = [
     phone: "777-987-6543",
   },
 ];
-
-// filters = [
-//   {
-//     key: "beatNumber",
-//     value: "B1650",
-//     operator: "=",
-//   },
-//   {
-//     key: "problemCategory",
-//     value: "Disturbance",
-//     operator: "=",
-//   },
-//   {
-//     key: "description",
-//     value: "disruptive behavior",
-//     operator: "contains",
-//   },
-// ];
-
-// Editor
-// 1. Cannot edit - status, beat number, email, notes
-// Backend to not check the auth
+export const dummyRows = [
+  {
+    complaintId: 5,
+    firstName: "----",
+    lastName: "---",
+    daysOfWeek: ["---"],
+    beatNumber: "----",
+    dateOfComplaint: "02/22/2025",
+    startTime: "07:00 AM",
+    endTime: "09:00 AM",
+    location: "-----",
+    addressDirection: "-----",
+    addressStreet: "----",
+    addressZipcode: "----",
+    intersection1Direction: "-----",
+    intersection1Street: "----",
+    intersection2Direction: "-----",
+    intersection2Street: "-----",
+    intersectionZipcode: "----",
+    problemCategory: "-----",
+    description: "This is dummy data, error in filter",
+    complaintStatus: "Open",
+    subscribeToAlerts: true,
+    email: "robertwilson@example.com",
+    phone: "333-456-7890",
+  },
+];

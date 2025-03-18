@@ -2,6 +2,9 @@ import * as React from "react";
 import { useState, useEffect } from "react";
 import { DataGrid } from "@mui/x-data-grid";
 import { ComplaintStatusCell, CustomFooter, rowsDump } from "./ComplaintsTableHelper";
+import useStore from "../store/store";
+import nodata from "../assets/nodata.gif";
+import { Skeleton } from "@mui/material";
 
 const statusColors = {
   Open: "#318D00",
@@ -11,6 +14,8 @@ const statusColors = {
 };
 
 const ComplaintsTable = () => {
+  const { complaints, loading } = useStore();
+
   const [anchorEl, setAnchorEl] = useState(null);
   const [status, setStatus] = useState("");
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -75,7 +80,7 @@ const ComplaintsTable = () => {
       headerName: "Status",
       minWidth: 200,
       flex: 1,
-      renderCell: (params) => <ComplaintStatusCell value={params.row.complaintStatus} id={params.id} onChange={handleStatusChange} />,
+      renderCell: (params) => <ComplaintStatusCell value={params.row.complaintStatus} id={params.complaintId} onChange={handleStatusChange} />,
     },
     {
       field: "location",
@@ -124,22 +129,19 @@ const ComplaintsTable = () => {
   const hiddenColumns = ["location", "reporter", "daysOfWeek", "timeRange"];
   const [columnVisibilityModel, setColumnVisibilityModel] = useState(hiddenColumns.reduce((acc, col) => ({ ...acc, [col]: false }), {}));
 
-  const [rows, setRows] = useState(rowsDump);
   const [columns, setColumns] = useState(columnsDump);
-
-  useEffect(() => {
-    setRows(rowsDump);
-    setColumns(columnsDump);
-  }, []);
 
   const paginationModel = { page: 0, pageSize: 10 };
 
   return (
     <div style={{ width: "100%", height: "100%", overflowX: "auto" }}>
       <DataGrid
-        rows={rows}
+        rows={complaints?.length > 0 ? complaints : []}
         columns={isMobile ? columns.filter((col) => !hiddenColumns.includes(col.field)) : columns}
-        initialState={{ pagination: { paginationModel } }}
+        initialState={{
+          pagination: { pageSize: 10, page: 0 },
+        }}
+        getRowId={(row) => row.complaintId}
         pageSizeOptions={[5, 10, 20]}
         disableSelectionOnClick
         rowHeight={72}
@@ -147,8 +149,21 @@ const ComplaintsTable = () => {
         disableColumnFilter
         columnVisibilityModel={columnVisibilityModel}
         onColumnVisibilityModelChange={(newModel) => setColumnVisibilityModel(newModel)}
+        loading={loading} // Controls the skeleton loader
         slots={{
           footer: CustomFooter,
+          noRowsOverlay: () => (
+            <div style={{ textAlign: "center", padding: "20px" }}>
+              <img src={nodata} alt="No Data" style={{ height: "50vh" }} />
+              <p style={{ marginTop: "10px", fontSize: "1rem", color: "#666" }}>No data found for the selected filters.</p>
+            </div>
+          ),
+        }}
+        slotProps={{
+          loadingOverlay: {
+            variant: "skeleton", // Show skeleton loader when data is loading
+          },
+          noRowsVariant: "skeleton", // Skeleton display for "No Rows"
         }}
         sx={{
           minHeight: "400px",
@@ -157,7 +172,7 @@ const ComplaintsTable = () => {
             alignContent: "center",
           },
           "& .MuiDataGrid-virtualScrollerRenderZone": {
-            height: "calc(100%)",
+            height: "calc(70vh)",
             overflow: "auto",
           },
           "& .MuiDataGrid-virtualScroller": {

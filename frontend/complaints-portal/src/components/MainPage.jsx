@@ -2,6 +2,7 @@ import { Route, Routes } from "react-router-dom";
 import HeatMap from "./Heatmap";
 import Chatbot from "./Chatbot";
 import Complaints from "./Complaints";
+import React from "react";
 
 const MainPage = () => {
   return (
@@ -15,4 +16,4 @@ const MainPage = () => {
   );
 };
 
-export default MainPage;
+export default React.memo(MainPage);
