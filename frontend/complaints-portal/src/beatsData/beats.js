@@ -1,4 +1,4 @@
-const beatsData = {
+export const beatsData = {
   displayFieldName: "POLICE_BEAT",
   fieldAliases: {
     OBJECTID: "OBJECTID",
