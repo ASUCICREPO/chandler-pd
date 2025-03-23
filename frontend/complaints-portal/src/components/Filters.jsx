@@ -7,8 +7,10 @@ import dayjs from "dayjs";
 import { dummyRows, rowsDump } from "./ComplaintsTableHelper";
 import useStore from "../store/store";
 import { useLocation, useNavigate } from "react-router-dom";
+import { beatsList } from "../beatsData/beats";
+import SendEmail from "./SendEmail";
 const Filters = () => {
-  const { setComplaints, setLoading } = useStore();
+  const { setComplaints, selectedRows, currentPage, setLoading, setPagination } = useStore();
   const resetState = {
     mainFilter: "",
     timeRange: [null, null], // Stores start and end times
@@ -16,10 +18,11 @@ const Filters = () => {
     dateRange: [null, null], // Stores start and end dates
     problemCategory: "",
     complaintStatus: "",
+    page: 1,
   };
   const [filtersState, setFiltersState] = useState(resetState);
 
-  const [beatOptions, setBeatOptions] = useState([]);
+  const [beatOptions, setBeatOptions] = useState(beatsList || []);
   const [statusOptions, setStatusOptions] = useState(["Open", "Closed", "Follow up", "Red star"]);
   const [problemCategoryOptions, setProblemCategoryOptions] = useState(["Speed", "Stop sign", "Red light", "School traffic complaint", "Racing", "Reckless Driving"]);
   const mainFilterOptions = [
@@ -58,11 +61,12 @@ const Filters = () => {
     };
   };
 
-  const applyFilters = () => {
+  const applyFilters = (newFilter) => {
     const filters = getFiltersByParams();
-    setFiltersState(filters);
-    getData(filters);
+    setFiltersState(newFilter || filters);
+    getData(newFilter || filters);
   };
+
   const getData = async (filters) => {
     const formatDate = (date) => (date ? new Date(date).toISOString().split("T")[0] : "");
     const formatTime = (time) => (time ? new Date(time).toTimeString().split(" ")[0] : "");
@@ -82,7 +86,7 @@ const Filters = () => {
       endTime: filters.timeRange?.[1] ? filters.timeRange[1] : "",
 
       complaintStatus: filters.complaintStatus ? filters.complaintStatus : [],
-      page: filters.page || "1", // Default to page 1 if not set
+      page: currentPage + 1 || 1, // Default to page 1 if not set
     };
     setLoading(true);
     try {
@@ -99,20 +103,18 @@ const Filters = () => {
       }
 
       const responseData = await response.json();
-      const uniqueBeatNumbers = [...new Set(responseData.complaintsData.map((complaint) => complaint.beatNumber))];
-      setBeatOptions(uniqueBeatNumbers);
       setComplaints(responseData.complaintsData || dummyRows);
+      setPagination(responseData.page - 1, responseData.totalComplaint, responseData.totalPages);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching data:", error);
       setLoading("error");
     }
   };
-  useEffect(() => {
-    setBeatOptions(["11", "14"]);
-    applyFilters();
-  }, []); // Triggers whenever `filters` changes
 
+  useEffect(() => {
+    applyFilters();
+  }, [currentPage]);
   const handleFilterChange = (key, newValue) => {
     let updatedState = resetState;
 
@@ -134,6 +136,7 @@ const Filters = () => {
 
     // Case 3: If 'mainFilter' is updated but is NOT 'timeRange' or 'dateRange', reset state with the new main filter
     // Example - Main filter was Beat Number - and value of Beat Number is now changed
+    // Reset page number in that case
     else if (key === "mainFilter" && newValue !== "timeRange" && newValue !== "dateRange") {
       updatedState = { ...resetState, [key]: newValue };
       updateURLWithFilters(updatedState);
@@ -179,6 +182,11 @@ const Filters = () => {
     } else {
       navigate({ search: queryParams.toString() });
     }
+  };
+  const [openEmailDialog, setOpenEmailDialog] = useState(false);
+
+  const showEmailDialog = (params) => {
+    setOpenEmailDialog(true);
   };
 
   return (
@@ -237,7 +245,7 @@ const Filters = () => {
             </Stack>
           )}
 
-          {filtersState.mainFilter === "beatNumber" && <Autocomplete sx={{ width: "15rem" }} size="small" value={filtersState.beatNumber} onChange={(event, newValue) => handleFilterChange("beatNumber", newValue)} options={beatOptions} renderInput={(params) => <TextField {...params} label="Beat Number" />} />}
+          {filtersState.mainFilter === "beatNumber" && <Autocomplete sx={{ width: "15rem" }} size="small" value={filtersState.beatNumber} onChange={(event, newValue) => handleFilterChange("beatNumber", newValue)} options={beatsList} renderInput={(params) => <TextField {...params} label="Beat Number" />} />}
 
           {/* Date Range Pickers with Validation */}
           {filtersState.mainFilter === "dateRange" && (
@@ -287,10 +295,11 @@ const Filters = () => {
             Reset
           </Button> */}
         </Stack>
-        <Button variant="outlined" startIcon={<EmailIcon />} size="small">
+        <Button variant="outlined" startIcon={<EmailIcon />} size="small" onClick={showEmailDialog} disabled={selectedRows.length <= 0}>
           Send Email
         </Button>
       </Stack>
+      <SendEmail openEmailDialog={openEmailDialog} setOpenEmailDialog={setOpenEmailDialog} />
     </LocalizationProvider>
   );
 };

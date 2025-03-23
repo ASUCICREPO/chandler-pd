@@ -2,9 +2,11 @@ import * as React from "react";
 import { styled, alpha } from "@mui/material/styles";
 import { Button, Menu, MenuItem, Box } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import { DataGrid, GridPagination } from "@mui/x-data-grid";
+import { GridPagination } from "@mui/x-data-grid";
+import useStore from "../store/store";
+import Caution from "./Caution";
 
-const statusColors = {
+export const statusColors = {
   Open: "#318D00",
   Closed: "#D32F2F",
   "Follow-Up": "#1976D2",
@@ -12,6 +14,9 @@ const statusColors = {
 };
 // Custom Footer with Pagination on Left & Buttons on Right
 export const CustomFooter = () => {
+  const { currentPage, setCurrentPage, setSelectedRows, selectedRows } = useStore();
+  const [open, setOpen] = React.useState(false);
+  const [next, setNext] = React.useState(1);
   return (
     <Box
       sx={{
@@ -24,7 +29,28 @@ export const CustomFooter = () => {
       }}
     >
       {/* Left-aligned pagination */}
-      <GridPagination />
+      <GridPagination
+        page={currentPage}
+        onPageChange={(e, newPage) => {
+          if (selectedRows.length > 0) {
+            setOpen(true);
+            setNext(newPage);
+          } else {
+            setCurrentPage(newPage);
+          }
+        }}
+      />
+      <Caution
+        open={open}
+        onClose={() => {
+          setOpen(false);
+        }}
+        onProceed={() => {
+          setOpen(false);
+          setCurrentPage(next);
+          setSelectedRows([]);
+        }}
+      />
 
       {/* Right-aligned buttons */}
       {/* <Box sx={{ display: "flex", gap: "10px" }}>
@@ -39,7 +65,7 @@ export const CustomFooter = () => {
   );
 };
 
-export const ComplaintStatusCell = ({ value, id, onChange }) => {
+export const StatusComponent = ({ value, id, onChange }) => {
   const [anchorEl, setAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);
 
@@ -53,11 +79,12 @@ export const ComplaintStatusCell = ({ value, id, onChange }) => {
 
   const handleStatusSelect = (status) => {
     onChange(status); // Call the status change function passed from parent
+    handleClose();
   };
 
   return (
     <Box>
-      <Button sx={{ width: "10rem", backgroundColor: statusColors[value] }} onClick={handleClick} variant="contained" color="primary" size="small" endIcon={<KeyboardArrowDownIcon />}>
+      <Button sx={{ width: "9rem", backgroundColor: statusColors[value] }} onClick={handleClick} variant="contained" color="primary" size="medium" endIcon={<KeyboardArrowDownIcon />}>
         {value}
       </Button>
       <StyledMenu anchorEl={anchorEl} open={open} onClose={handleClose}>

@@ -1,11 +1,12 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
 import { DataGrid } from "@mui/x-data-grid";
-import { ComplaintStatusCell, CustomFooter, rowsDump } from "./ComplaintsTableHelper";
+import { StatusComponent, CustomFooter, rowsDump } from "./ComplaintsTableHelper";
 import useStore from "../store/store";
 import nodata from "../assets/nodata.gif";
-import { Skeleton } from "@mui/material";
+import { Dialog, DialogActions, DialogContent, Button, Skeleton, Typography } from "@mui/material";
 import dayjs from "dayjs";
+import ViewComplaint, { handleFieldChange } from "./ViewComplaint";
 
 const statusColors = {
   Open: "#318D00",
@@ -15,11 +16,19 @@ const statusColors = {
 };
 
 const ComplaintsTable = () => {
-  const { complaints, loading } = useStore();
+  const { complaints, loading, updateComplaint, selectedRows, setSelectedRows, totalComplaints } = useStore();
 
   const [anchorEl, setAnchorEl] = useState(null);
   const [status, setStatus] = useState("");
+  const [openDetailsDialog, setOpenDetailsDialog] = useState(false); // State to control popup
+  const [selectedComplaint, setSelectedComplaint] = useState(null); // State to control popup
+
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  const showComplaintsDetails = (params) => {
+    setOpenDetailsDialog(true);
+    setSelectedComplaint(params.row);
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -87,7 +96,7 @@ const ComplaintsTable = () => {
       headerName: "Status",
       minWidth: 200,
       flex: 1,
-      renderCell: (params) => <ComplaintStatusCell value={params.row.complaintStatus} id={params.complaintId} onChange={handleStatusChange} />,
+      renderCell: (params) => <StatusComponent value={params.row.complaintStatus} id={params.row.complaintId} onChange={(status) => handleFieldChange(params.row.complaintId, "complaintStatus", status, updateComplaint)} />,
     },
     {
       field: "location",
@@ -138,25 +147,35 @@ const ComplaintsTable = () => {
 
   const [columns, setColumns] = useState(columnsDump);
 
-  const paginationModel = { page: 0, pageSize: 10 };
-
   return (
     <div style={{ width: "100%", height: "100%", overflowX: "auto" }}>
       <DataGrid
         rows={complaints?.length > 0 ? complaints : []}
         columns={isMobile ? columns.filter((col) => !hiddenColumns.includes(col.field)) : columns}
-        initialState={{
-          pagination: { pageSize: 10, page: 0 },
-        }}
-        getRowId={(row) => row.complaintId}
-        pageSizeOptions={[5, 10, 20]}
-        disableSelectionOnClick
+        getRowId={(row) => row?.complaintId}
+        pageSizeOptions={[10]}
         rowHeight={72}
         checkboxSelection
         disableColumnFilter
         columnVisibilityModel={columnVisibilityModel}
         onColumnVisibilityModelChange={(newModel) => setColumnVisibilityModel(newModel)}
         loading={loading} // Controls the skeleton loader
+        pagination
+        paginationMode="server" // Enables server-side pagination
+        rowCount={totalComplaints} // Total complaints count from API
+        // Key changes to separate row click from selection
+        onRowClick={showComplaintsDetails}
+        isRowSelectable={(params) => true}
+        onRowSelectionModelChange={(newSelectionModel) => {
+          setSelectedRows(newSelectionModel);
+        }}
+        rowSelectionModel={selectedRows}
+        keepNonExistentRowsSelected
+        // Disable the default row selection on click
+        disableRowSelectionOnClick
+        initialState={{
+          pagination: { paginationModel: { pageSize: 10, page: 0 } },
+        }}
         slots={{
           footer: CustomFooter,
           noRowsOverlay: () => (
@@ -214,6 +233,7 @@ const ComplaintsTable = () => {
           },
         }}
       />
+      <ViewComplaint openDetailsDialog={openDetailsDialog} setOpenDetailsDialog={setOpenDetailsDialog} complaint={selectedComplaint} setSelectedComplaint={setSelectedComplaint} />
     </div>
   );
 };
