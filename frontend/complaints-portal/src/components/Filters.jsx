@@ -9,14 +9,15 @@ import useStore from "../store/store";
 import { useLocation, useNavigate } from "react-router-dom";
 import { beatsList } from "../beatsData/beats";
 import SendEmail from "./SendEmail";
+
 const Filters = () => {
   const { setComplaints, selectedRows, currentPage, setLoading, setPagination } = useStore();
   const resetState = {
     mainFilter: "",
     timeRange: [null, null], // Stores start and end times
-    beatNumber: "",
+    beatNumber: [], // Changed to array for multi-select
     dateRange: [null, null], // Stores start and end dates
-    problemCategory: "",
+    problemCategory: [], // Changed to array for multi-select
     complaintStatus: "",
     page: 1,
   };
@@ -49,12 +50,22 @@ const Filters = () => {
   ];
   const navigate = useNavigate();
   const location = useLocation();
+
   const getFiltersByParams = () => {
     const queryParams = new URLSearchParams(location.search);
+
+    // Get beatNumber as array from URL parameters
+    const beatNumberParam = queryParams.getAll("beatNumber");
+    const beatNumbers = beatNumberParam.length > 0 ? beatNumberParam : [];
+
+    // Get problemCategory as array from URL parameters
+    const problemCategoryParam = queryParams.getAll("problemCategory");
+    const problemCategories = problemCategoryParam.length > 0 ? problemCategoryParam : [];
+
     return {
       mainFilter: queryParams.get("filter") || "",
-      beatNumber: queryParams.get("beatNumber") || "",
-      problemCategory: queryParams.get("problemCategory") || "",
+      beatNumber: beatNumbers,
+      problemCategory: problemCategories,
       complaintStatus: queryParams.get("complaintStatus") || "",
       timeRange: [queryParams.get("startTime") ? dayjs(queryParams.get("startTime")) : null, queryParams.get("endTime") ? dayjs(queryParams.get("endTime")) : null],
       dateRange: [queryParams.get("startDate") ? dayjs(queryParams.get("startDate")) : null, queryParams.get("endDate") ? dayjs(queryParams.get("endDate")) : null],
@@ -75,16 +86,13 @@ const Filters = () => {
     // Prepare API payload based on updated filters
     const apiPayload = {
       tableName: "Complaints_table",
-      beatNumber: filters.beatNumber ? [filters.beatNumber] : [],
+      beatNumber: filters.beatNumber || [], // Now sending array of beat numbers
       complaintId: filters.complaintId ? [filters.complaintId] : [],
-      problemCategory: filters.problemCategory ? [filters.problemCategory] : [],
+      problemCategory: filters.problemCategory || [], // Now sending array of problem categories
       startDate: filters.dateRange[0] ? formatDate(filters.dateRange[0]) : "",
       endDate: filters.dateRange[1] ? formatDate(filters.dateRange[1]) : "",
-      // startTime: filters.timeRange?.[0] ? formatTime(filters.timeRange[0]) : "",
-      // endTime: filters.timeRange?.[1] ? formatTime(filters.timeRange[1]) : "",
       startTime: filters.timeRange?.[0] ? filters.timeRange[0] : "",
       endTime: filters.timeRange?.[1] ? filters.timeRange[1] : "",
-
       complaintStatus: filters.complaintStatus ? filters.complaintStatus : [],
       page: currentPage + 1 || 1, // Default to page 1 if not set
     };
@@ -115,28 +123,25 @@ const Filters = () => {
   useEffect(() => {
     applyFilters();
   }, [currentPage]);
+
   const handleFilterChange = (key, newValue) => {
     let updatedState = resetState;
 
     if (key === "mainFilter" && !newValue) {
       // Case 1: If 'mainFilter' is cleared (empty value), reset filters and fetch new data
-      // Example - Main filter was Beat Number - and is now cleared
       updateURLWithFilters(updatedState);
       setFiltersState(updatedState);
       getData(updatedState);
     }
 
     // Case 2: If any filter (except 'mainFilter') is cleared or contains an array with null values, update state accordingly
-    // Example - Main filter was Beat Number - and value of Beat Number is now cleared of time/date filters
-    else if (key !== "mainFilter" && (!newValue || (Array.isArray(newValue) && !newValue.every((val) => val !== null)))) {
+    else if (key !== "mainFilter" && (!newValue || (Array.isArray(newValue) && newValue.length === 0))) {
       updatedState = { ...filtersState, [key]: newValue };
       updateURLWithFilters(updatedState);
       setFiltersState(updatedState);
     }
 
     // Case 3: If 'mainFilter' is updated but is NOT 'timeRange' or 'dateRange', reset state with the new main filter
-    // Example - Main filter was Beat Number - and value of Beat Number is now changed
-    // Reset page number in that case
     else if (key === "mainFilter" && newValue !== "timeRange" && newValue !== "dateRange") {
       updatedState = { ...resetState, [key]: newValue };
       updateURLWithFilters(updatedState);
@@ -167,12 +172,28 @@ const Filters = () => {
 
   const updateURLWithFilters = (filters) => {
     const queryParams = new URLSearchParams();
+
     if (filters.mainFilter) queryParams.set("filter", filters.mainFilter);
+
     if (filters.timeRange[0]) queryParams.set("startTime", filters.timeRange[0].toISOString());
     if (filters.timeRange[1]) queryParams.set("endTime", filters.timeRange[1].toISOString());
-    if (filters.beatNumber) queryParams.set("beatNumber", filters.beatNumber);
-    if (filters.problemCategory) queryParams.set("problemCategory", filters.problemCategory);
+
+    // Handle beatNumber array in URL
+    if (filters.beatNumber && filters.beatNumber.length > 0) {
+      filters.beatNumber.forEach((beat) => {
+        queryParams.append("beatNumber", beat);
+      });
+    }
+
+    // Handle problemCategory array in URL
+    if (filters.problemCategory && filters.problemCategory.length > 0) {
+      filters.problemCategory.forEach((category) => {
+        queryParams.append("problemCategory", category);
+      });
+    }
+
     if (filters.complaintStatus) queryParams.set("complaintStatus", filters.complaintStatus);
+
     if (filters.dateRange[0]) queryParams.set("startDate", filters.dateRange[0].toISOString());
     if (filters.dateRange[1]) queryParams.set("endDate", filters.dateRange[1].toISOString());
 
@@ -183,6 +204,7 @@ const Filters = () => {
       navigate({ search: queryParams.toString() });
     }
   };
+
   const [openEmailDialog, setOpenEmailDialog] = useState(false);
 
   const showEmailDialog = (params) => {
@@ -203,6 +225,7 @@ const Filters = () => {
             getOptionLabel={(option) => option.value} // Display the 'value' while storing the 'key'
             renderInput={(params) => <TextField {...params} label="Filter" />}
           />
+
           {/* Conditional Fields Based on Main Filter */}
           {/* Time Range Pickers */}
           {filtersState.mainFilter === "timeRange" && (
@@ -245,7 +268,8 @@ const Filters = () => {
             </Stack>
           )}
 
-          {filtersState.mainFilter === "beatNumber" && <Autocomplete sx={{ width: "15rem" }} size="small" value={filtersState.beatNumber} onChange={(event, newValue) => handleFilterChange("beatNumber", newValue)} options={beatsList} renderInput={(params) => <TextField {...params} label="Beat Number" />} />}
+          {/* Beat Number - Now with multiple selection */}
+          {filtersState.mainFilter === "beatNumber" && <Autocomplete sx={{ width: "15rem" }} size="small" multiple value={filtersState.beatNumber} onChange={(event, newValue) => handleFilterChange("beatNumber", newValue)} options={beatsList} renderInput={(params) => <TextField {...params} label="Beat Number" />} />}
 
           {/* Date Range Pickers with Validation */}
           {filtersState.mainFilter === "dateRange" && (
@@ -288,12 +312,11 @@ const Filters = () => {
               />
             </Stack>
           )}
-          {filtersState.mainFilter === "problemCategory" && <Autocomplete sx={{ width: "15rem" }} size="small" value={filtersState.problemCategory} onChange={(event, newValue) => handleFilterChange("problemCategory", newValue)} options={problemCategoryOptions} renderInput={(params) => <TextField {...params} label="Problem Category" />} />}
-          {filtersState.mainFilter === "complaintStatus" && <Autocomplete sx={{ width: "15rem" }} size="small" value={filtersState.complaintStatus} onChange={(event, newValue) => handleFilterChange("complaintStatus", newValue)} options={statusOptions} renderInput={(params) => <TextField {...params} label="Complaint Status" />} />}
 
-          {/* <Button variant="outlined" size="small" onClick={handleResetFilters}>
-            Reset
-          </Button> */}
+          {/* Problem Category - Now with multiple selection */}
+          {filtersState.mainFilter === "problemCategory" && <Autocomplete sx={{ width: "15rem" }} size="small" multiple value={filtersState.problemCategory} onChange={(event, newValue) => handleFilterChange("problemCategory", newValue)} options={problemCategoryOptions} renderInput={(params) => <TextField {...params} label="Problem Category" />} />}
+
+          {filtersState.mainFilter === "complaintStatus" && <Autocomplete sx={{ width: "15rem" }} size="small" value={filtersState.complaintStatus} onChange={(event, newValue) => handleFilterChange("complaintStatus", newValue)} options={statusOptions} renderInput={(params) => <TextField {...params} label="Complaint Status" />} />}
         </Stack>
         <Button variant="outlined" startIcon={<EmailIcon />} size="small" onClick={showEmailDialog} disabled={selectedRows.length <= 0}>
           Send Email

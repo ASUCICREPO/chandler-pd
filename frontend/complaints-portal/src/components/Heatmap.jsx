@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { loadModules } from "esri-loader";
 import { beatsData } from "../beatsData/beats";
+import CustomBeatPopup from "./CustomBeatPopup"; // Import the custom popup component
 
 // Complaints data
-const complaintsPerBeat = {
+const complaintsData = {
   1: 10,
   2: 66,
   3: 88,
@@ -12,12 +13,23 @@ const complaintsPerBeat = {
   7: 19,
 };
 
+// Apply counts directly to your beats layer
+beatsData.features.forEach((feature) => {
+  const beatId = feature.attributes.POLICE_BEAT;
+  // Use complaintsData directly since it's already in the right format
+  // If the beat ID exists in complaintsData, use that count; otherwise, use 0
+  feature.attributes.COMPLAINT_COUNT = complaintsData[beatId] || 0;
+});
+
 const PoliceBeatsMap = () => {
   const mapRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState(null);
   const [beatsLayer, setBeatsLayer] = useState(null);
-  const [currentBasemap, setCurrentBasemap] = useState("streets"); // S
+  const [currentBasemap, setCurrentBasemap] = useState("streets");
+  const [selectedBeat, setSelectedBeat] = useState(null);
+  const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
+
   useEffect(() => {
     if (!beatsData.features) return; // Wait until data is loaded
     setLoading(true);
@@ -55,11 +67,8 @@ const PoliceBeatsMap = () => {
             maxScale: 1000, // Close zoom limit
           },
           popup: {
-            dockEnabled: true,
-            dockOptions: {
-              position: "auto",
-              breakpoint: false,
-            },
+            dockEnabled: false,
+            autoOpenEnabled: false, // Disable default popups
           },
           ui: {
             components: ["attribution"], // Only keep attribution and add others later
@@ -73,14 +82,25 @@ const PoliceBeatsMap = () => {
         });
 
         // Calculate min and max complaints for color scaling
-        const complaintValues = Object.values(complaintsPerBeat);
+        const complaintValues = Object.values(complaintsData);
         const minComplaints = Math.min(...complaintValues);
         const maxComplaints = Math.max(...complaintValues);
+
+        // Helper function to categorize complaint levels
+        function getComplaintLevel(count, min, max) {
+          if (count === 0) return "None";
+          const range = max - min;
+          if (count < min + range * 0.2) return "Very Low";
+          if (count < min + range * 0.4) return "Low";
+          if (count < min + range * 0.6) return "Medium";
+          if (count < min + range * 0.8) return "High";
+          return "Very High";
+        }
 
         // Transform beats data into features, including complaint counts
         const features = beatsData.features.map((beat) => {
           const beatNumber = beat.attributes.POLICE_BEAT;
-          const complaintCount = complaintsPerBeat[beatNumber] || 0;
+          const complaintCount = complaintsData[beatNumber] || 0;
 
           return {
             geometry: {
@@ -97,17 +117,6 @@ const PoliceBeatsMap = () => {
             },
           };
         });
-
-        // Helper function to categorize complaint levels
-        function getComplaintLevel(count, min, max) {
-          if (count === 0) return "None";
-          const range = max - min;
-          if (count < min + range * 0.2) return "Very Low";
-          if (count < min + range * 0.4) return "Low";
-          if (count < min + range * 0.6) return "Medium";
-          if (count < min + range * 0.8) return "High";
-          return "Very High";
-        }
 
         // New color scheme based on the provided image
         // Using colors from bright green to bright red
@@ -160,30 +169,7 @@ const PoliceBeatsMap = () => {
             { name: "COMPLAINT_LEVEL", type: "string" },
           ],
           renderer: renderer,
-          popupTemplate: {
-            title: "<span style='font-size:1.1em; font-weight:bold;'>Police Beat {POLICE_BEAT}</span>",
-            content: [
-              {
-                type: "fields",
-                fieldInfos: [
-                  { fieldName: "DISTRICT", label: "District", visible: true },
-                  { fieldName: "COMPLAINT_COUNT", label: "Open Complaints", visible: true },
-                  { fieldName: "COMPLAINT_LEVEL", label: "Complaint Level", visible: true },
-                ],
-              },
-              {
-                type: "text",
-                text: "<br><span style='font-style:italic;'>Click for more detailed analysis</span>",
-              },
-            ],
-            actions: [
-              {
-                title: "View District Statistics",
-                id: "view-stats",
-                className: "esri-icon-chart",
-              },
-            ],
-          },
+          popupEnabled: false, // Disable default popups
           labelingInfo: [
             {
               labelExpressionInfo: { expression: "$feature.POLICE_BEAT" },
@@ -207,6 +193,39 @@ const PoliceBeatsMap = () => {
         });
 
         setBeatsLayer(beatsFeatLayer);
+
+        // Add click event to handle custom popup
+        mapView.on("click", (event) => {
+          // Clear existing popup
+          setSelectedBeat(null);
+
+          // Hit test to check if a beat was clicked
+          mapView.hitTest(event).then((response) => {
+            // Find features from the beats layer
+            const beatFeature = response.results.find((result) => result.graphic && result.graphic.layer === beatsFeatLayer);
+
+            if (beatFeature) {
+              // Store the clicked beat and position for popup
+              setSelectedBeat(beatFeature.graphic);
+              setPopupPosition({
+                x: event.screenPoint.x,
+                y: event.screenPoint.y,
+              });
+            }
+          });
+        });
+
+        // Close popup when clicking elsewhere on the map
+        mapView.on("immediate-click", (event) => {
+          // Hit test to check if click was not on a beat
+          mapView.hitTest(event).then((response) => {
+            const beatFeature = response.results.find((result) => result.graphic && result.graphic.layer === beatsFeatLayer);
+
+            if (!beatFeature) {
+              setSelectedBeat(null);
+            }
+          });
+        });
 
         // Modified beats outline layer with thicker, more visible borders
         const beatsOutlineLayer = new FeatureLayer({
@@ -333,6 +352,9 @@ const PoliceBeatsMap = () => {
             } else {
               beatsFeatLayer.definitionExpression = `COMPLAINT_LEVEL = '${level}'`;
             }
+
+            // Close popup when changing filters
+            setSelectedBeat(null);
           });
         });
 
@@ -366,6 +388,9 @@ const PoliceBeatsMap = () => {
 
           // Reset the definition expression
           beatsFeatLayer.definitionExpression = "";
+
+          // Close popup when changing filters
+          setSelectedBeat(null);
         });
 
         // Add home button widget
@@ -376,8 +401,7 @@ const PoliceBeatsMap = () => {
         // Add search widget
         const searchWidget = new Search({
           view: mapView,
-          popupEnabled: true,
-          popupOpenOnSelect: true,
+          popupEnabled: false, // Disable default popups
           searchAllEnabled: false,
           includeDefaultSources: false,
           sources: [
@@ -391,6 +415,29 @@ const PoliceBeatsMap = () => {
               placeholder: "Search Beat #",
             },
           ],
+        });
+
+        // Handle search widget selection to show custom popup
+        searchWidget.on("select-result", (event) => {
+          if (event.result && event.result.feature) {
+            const feature = event.result.feature;
+            setSelectedBeat(feature);
+
+            // Get the center point of the beat for popup positioning
+            mapView.whenLayerView(beatsFeatLayer).then((layerView) => {
+              // Check if the feature has a valid extent
+              if (feature.geometry && feature.geometry.extent) {
+                // Get the center of the polygon
+                const center = feature.geometry.extent.center;
+                // Convert the map point to screen coordinates
+                const screenPoint = mapView.toScreen(center);
+                setPopupPosition({
+                  x: screenPoint.x,
+                  y: screenPoint.y,
+                });
+              }
+            });
+          }
         });
 
         // Add scale bar
@@ -417,28 +464,6 @@ const PoliceBeatsMap = () => {
         mapView.ui.add(customLegendDiv, "bottom-left");
         mapView.ui.add(scaleBar, "bottom-right");
         mapView.ui.add(bgExpand, "top-right");
-
-        // Optional: Add title and information panel
-        const titleDiv = document.createElement("div");
-        titleDiv.id = "titleDiv";
-        titleDiv.className = "esri-widget";
-        titleDiv.style.padding = "10px";
-        titleDiv.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
-        titleDiv.style.margin = "10px";
-        titleDiv.innerHTML = `
-          <div style="text-align: center;">
-            <h2 style="margin: 0; font-size: 18px; color: #323232;">Chandler Police Department</h2>
-            <span style="font-size: 14px; color: #555;">Complaint Heat Map by Beat</span>
-          </div>
-        `;
-        mapView.ui.add(titleDiv, "top-center");
-
-        // Cleanup
-        return () => {
-          if (mapView) {
-            mapView.destroy();
-          }
-        };
       })
       .catch((err) => {
         console.error("Error loading ArcGIS modules:", err);
@@ -450,10 +475,15 @@ const PoliceBeatsMap = () => {
         view.destroy();
       }
     };
-  }, []);
+  }, [currentBasemap]);
+
+  // Handle closing the custom popup
+  const handleClosePopup = () => {
+    setSelectedBeat(null);
+  };
 
   return (
-    <div style={{ height: "100vh", width: "100%" }} className="map-container">
+    <div style={{ height: "100vh", width: "100%", position: "relative" }} className="map-container">
       {loading && (
         <div
           style={{
@@ -482,6 +512,9 @@ const PoliceBeatsMap = () => {
         </div>
       )}
       <div ref={mapRef} style={{ height: "100%", width: "100%" }} />
+
+      {/* Render custom popup when a beat is selected */}
+      {selectedBeat && <CustomBeatPopup beat={selectedBeat} position={popupPosition} onClose={handleClosePopup} />}
     </div>
   );
 };
