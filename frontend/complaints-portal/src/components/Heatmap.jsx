@@ -17,7 +17,7 @@ const PoliceBeatsMap = () => {
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState(null);
   const [beatsLayer, setBeatsLayer] = useState(null);
-
+  const [currentBasemap, setCurrentBasemap] = useState("streets"); // S
   useEffect(() => {
     if (!beatsData.features) return; // Wait until data is loaded
     setLoading(true);
@@ -27,15 +27,15 @@ const PoliceBeatsMap = () => {
       .then(([Map, MapView, FeatureLayer, SpatialReference, SimpleRenderer, SimpleFillSymbol, Legend, Home, Search, ScaleBar, BasemapGallery, Expand, Extent, Feature]) => {
         // Create map with a more professional basemap
         const map = new Map({
-          basemap: "gray-vector", // More subtle basemap for professional visualization
+          basemap: currentBasemap, // More subtle basemap for professional visualization
         });
 
         // Define Arizona extent to restrict panning
-        const arizonaExtent = new Extent({
-          xmin: -114.8,
-          ymin: 31.3,
-          xmax: -109.0,
-          ymax: 37.0,
+        const phoenixAndChandlerExtent = new Extent({
+          xmin: -112.5, // Extended westward to include Phoenix
+          ymin: 33.0, // Adjusted to include more of the Phoenix metro area
+          xmax: -111.0, // Eastern boundary still covers Chandler
+          ymax: 33.9, // Northern boundary includes north Phoenix
           spatialReference: { wkid: 4326 },
         });
 
@@ -44,13 +44,13 @@ const PoliceBeatsMap = () => {
           container: mapRef.current,
           map: map,
           center: [-111.8413, 33.3015], // Approximate center of Chandler, AZ
-          zoom: 11, // Zoomed out to see entire Chandler area
+          zoom: 12, // Zoomed out to see entire Chandler area
           constraints: {
             snapToZoom: true,
             rotationEnabled: false,
-            minZoom: 8,
-            maxZoom: 16,
-            geometry: arizonaExtent, // Restrict pan to Arizona
+            minZoom: 11,
+            maxZoom: 20,
+            geometry: phoenixAndChandlerExtent, // Restrict pan to Arizona
             minScale: 4000000, // Approximately covers all of Arizona
             maxScale: 1000, // Close zoom limit
           },
@@ -65,7 +65,6 @@ const PoliceBeatsMap = () => {
             components: ["attribution"], // Only keep attribution and add others later
           },
         });
-
         setView(mapView);
 
         // Add loading indicator
