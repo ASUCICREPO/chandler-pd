@@ -10,25 +10,26 @@ const API_URL = import.meta.env.VITE_API_URL;
 export const handleFieldChange = async (complaintId, field, value, updateComplaint, onSuccess) => {
   const payload = {
     complaintId: complaintId,
-    field: field,
+    attribute: field,
     value: value, // Dynamically set the field key and its value
+    isUpdate: true,
   };
 
   try {
-    const response = await fetch(`${API_URL}/Development`, {
-      method: "POST",
+    const response = await fetch(`${API_URL}/Development/`, {
+      method: "PUT",
       headers: {
         "Content-Type": "application/json", // Make sure to send JSON
       },
       body: JSON.stringify(payload), // Convert payload object to JSON
     });
-    updateComplaint(complaintId, field, value);
-    if (onSuccess) {
-      onSuccess();
-    }
+
     if (response.ok) {
       const responseData = await response.json(); // Parse the JSON response if needed
-      console.log("Success:", responseData);
+      updateComplaint(complaintId, field, value);
+      if (onSuccess) {
+        onSuccess();
+      }
     } else {
       console.error("Error:", response.statusText);
     }
