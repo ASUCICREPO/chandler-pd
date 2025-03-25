@@ -1,7 +1,7 @@
 import { Stack, Typography } from "@mui/material";
 import Filters from "./Filters";
 import ComplaintsTable from "./ComplaintsTable";
-import React from "react";
+import React, { useState } from "react";
 
 const Complaints = () => {
   return (

@@ -3,23 +3,14 @@ import { loadModules } from "esri-loader";
 import { beatsData } from "../beatsData/beats";
 import CustomBeatPopup from "./CustomBeatPopup"; // Import the custom popup component
 
-// Complaints data
-const complaintsData = {
-  1: 10,
-  2: 66,
-  3: 88,
-  4: 89,
-  5: 19,
-  7: 19,
-};
-
-// Apply counts directly to your beats layer
-beatsData.features.forEach((feature) => {
-  const beatId = feature.attributes.POLICE_BEAT;
-  // Use complaintsData directly since it's already in the right format
-  // If the beat ID exists in complaintsData, use that count; otherwise, use 0
-  feature.attributes.COMPLAINT_COUNT = complaintsData[beatId] || 0;
-});
+// // Apply counts directly to your beats layer
+// beatsData.features.forEach((feature) => {
+//   const beatId = feature.attributes.POLICE_BEAT;
+//   // Use complaintsData directly since it's already in the right format
+//   // If the beat ID exists in complaintsData, use that count; otherwise, use 0
+//   feature.attributes.COMPLAINT_COUNT = complaintsData[beatId] || 0;
+// });
+const API_URL = import.meta.env.VITE_API_URL;
 
 const PoliceBeatsMap = () => {
   const mapRef = useRef(null);
@@ -29,11 +20,45 @@ const PoliceBeatsMap = () => {
   const [currentBasemap, setCurrentBasemap] = useState("streets");
   const [selectedBeat, setSelectedBeat] = useState(null);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
+  const [complaintsData, setComplaintsData] = useState({});
 
+  // Fetch complaints data from API
+  useEffect(() => {
+    const fetchComplaintsData = async () => {
+      setLoading(true);
+      try {
+        // Replace with actual API endpoint from one of the available police API services
+        // For example, using the Police API Client or DOJ Crime Data API
+        const response = await fetch(API_URL + "/Development/beat-open-cases");
+        const data = await response.json();
+
+        setComplaintsData(data.body);
+      } catch (error) {
+        console.error("Error fetching complaints data:", error);
+        // Fallback to default data if API fails
+        setComplaintsData({
+          1: 10,
+          2: 66,
+          3: 88,
+          4: 89,
+          5: 19,
+          7: 19,
+        });
+      }
+    };
+
+    fetchComplaintsData();
+  }, []);
   useEffect(() => {
     if (!beatsData.features) return; // Wait until data is loaded
     setLoading(true);
+    // Apply counts to beats layer once both data are available
+    beatsData.features.forEach((feature) => {
+      const beatId = feature.attributes.POLICE_BEAT;
+      feature.attributes.COMPLAINT_COUNT = complaintsData[beatId] || 0;
+    });
 
+    setLoading(true);
     // Load ArcGIS modules with additional components for enhanced visualization
     loadModules(["esri/Map", "esri/views/MapView", "esri/layers/FeatureLayer", "esri/geometry/SpatialReference", "esri/renderers/SimpleRenderer", "esri/symbols/SimpleFillSymbol", "esri/widgets/Legend", "esri/widgets/Home", "esri/widgets/Search", "esri/widgets/ScaleBar", "esri/widgets/BasemapGallery", "esri/widgets/Expand", "esri/geometry/Extent", "esri/widgets/Feature"], { css: true })
       .then(([Map, MapView, FeatureLayer, SpatialReference, SimpleRenderer, SimpleFillSymbol, Legend, Home, Search, ScaleBar, BasemapGallery, Expand, Extent, Feature]) => {
@@ -475,7 +500,7 @@ const PoliceBeatsMap = () => {
         view.destroy();
       }
     };
-  }, [currentBasemap]);
+  }, [currentBasemap, complaintsData]);
 
   // Handle closing the custom popup
   const handleClosePopup = () => {

@@ -16,11 +16,12 @@ const statusColors = {
 };
 
 const ComplaintsTable = () => {
+  const [openDetailsDialog, setOpenDetailsDialog] = useState(false); // State to control popup
+
   const { complaints, loading, updateComplaint, selectedRows, setSelectedRows, totalComplaints } = useStore();
 
   const [anchorEl, setAnchorEl] = useState(null);
   const [status, setStatus] = useState("");
-  const [openDetailsDialog, setOpenDetailsDialog] = useState(false); // State to control popup
   const [selectedComplaint, setSelectedComplaint] = useState(null); // State to control popup
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);

@@ -9,6 +9,7 @@ const useStore = create((set) => ({
   totalComplaints: 1,
   selectedRows: [],
   loading: true,
+  refresh: false,
 
   // Setters for each state variable
   setComplaints: (aComplaints) => set({ complaints: aComplaints }),
@@ -24,7 +25,7 @@ const useStore = create((set) => ({
         [field]: value,
       };
 
-      return { complaints: updatedComplaints };
+      return { complaints: updatedComplaints, refresh: true };
     });
   },
   setSelectedRows: (rows) => {
@@ -41,7 +42,8 @@ const useStore = create((set) => ({
       totalComplaints: totalComplaint,
       totalPages: totalPages,
     }),
-  setTotalComplaints: (count) => set({ totalComplaints: count }),
+  setComplaints: (aComplaints) => set({ complaints: aComplaints }),
+  setRefresh: (newRef) => set({ refresh: newRef }),
 }));
 
 export default useStore;

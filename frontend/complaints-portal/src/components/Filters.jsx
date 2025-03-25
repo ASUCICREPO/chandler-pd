@@ -12,7 +12,7 @@ import SendEmail from "./SendEmail";
 const API_URL = import.meta.env.VITE_API_URL;
 
 const Filters = () => {
-  const { setComplaints, selectedRows, currentPage, setLoading, setPagination } = useStore();
+  const { setComplaints, selectedRows, refresh, currentPage, setLoading, setPagination } = useStore();
   const resetState = {
     mainFilter: "",
     timeRange: [null, null], // Stores start and end times
@@ -126,7 +126,7 @@ const Filters = () => {
 
   useEffect(() => {
     applyFilters();
-  }, [currentPage]);
+  }, [currentPage, refresh]);
 
   const handleFilterChange = (key, newValue) => {
     let updatedState = resetState;

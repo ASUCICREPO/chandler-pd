@@ -2,9 +2,11 @@ import React from "react";
 import { Paper, Typography, Button, IconButton, Box, Divider, Stack } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import LaunchIcon from "@mui/icons-material/Launch";
+import { useNavigate } from "react-router-dom";
 const CustomBeatPopup = ({ beat, position, onClose }) => {
   // If no beat data is provided, don't render anything
   if (!beat) return null;
+  const navigate = useNavigate();
 
   return (
     <Paper
@@ -54,11 +56,23 @@ const CustomBeatPopup = ({ beat, position, onClose }) => {
         </Stack>
       </Box>
 
-      <Box sx={{ p: "0.5rem 1rem 1rem 1rem", textAlign: "center" }}>
-        <Button variant="outlined" fullWidth color="primary" size="small" startIcon={<LaunchIcon />} onClick={() => console.log(`View details for Beat ${beat.attributes.POLICE_BEAT}`)} sx={{ mr: 1 }}>
-          View All
-        </Button>
-      </Box>
+      {beat.attributes.COMPLAINT_COUNT > 0 && (
+        <Box sx={{ p: "0.5rem 1rem 1rem 1rem", textAlign: "center" }}>
+          <Button
+            variant="outlined"
+            fullWidth
+            color="primary"
+            size="small"
+            startIcon={<LaunchIcon />}
+            onClick={() => {
+              navigate(`/?filter=complaintStatus&beatNumber=${beat.attributes.POLICE_BEAT}&complaintStatus=Open`);
+            }}
+            sx={{ mr: 1 }}
+          >
+            View All
+          </Button>
+        </Box>
+      )}
 
       {/* Pointer triangle at bottom of popup */}
       <Box
