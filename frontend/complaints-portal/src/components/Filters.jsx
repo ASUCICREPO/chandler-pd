@@ -25,7 +25,7 @@ const Filters = () => {
   const [filtersState, setFiltersState] = useState(resetState);
 
   const [beatOptions, setBeatOptions] = useState(beatsList || []);
-  const [statusOptions, setStatusOptions] = useState(["Open", "Closed", "Follow up", "Red star"]);
+  const [statusOptions, setStatusOptions] = useState(["Open", "Closed", "Follow-Up", "Red-Star"]);
   const [problemCategoryOptions, setProblemCategoryOptions] = useState(["Speed", "Stop sign", "Red light", "School traffic complaint", "Racing", "Reckless Driving"]);
   const mainFilterOptions = [
     {
