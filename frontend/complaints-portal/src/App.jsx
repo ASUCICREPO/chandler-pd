@@ -5,6 +5,7 @@ import { Box, Stack } from "@mui/material";
 import LeftPanel from "./components/LeftPanel";
 import MainPage from "./components/MainPage";
 import React, { useEffect } from "react";
+import { ToastContainer } from "react-toastify";
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
             <MainPage />
           </Box>
         </Stack>
+        <ToastContainer />
       </Router>
     </>
   );

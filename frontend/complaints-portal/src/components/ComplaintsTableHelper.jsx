@@ -51,16 +51,6 @@ export const CustomFooter = () => {
           setSelectedRows([]);
         }}
       />
-
-      {/* Right-aligned buttons */}
-      {/* <Box sx={{ display: "flex", gap: "10px" }}>
-        <Button variant="contained" color="primary">
-          Export
-        </Button>
-        <Button variant="outlined" color="secondary">
-          Refresh
-        </Button>
-      </Box> */}
     </Box>
   );
 };
@@ -70,6 +60,8 @@ export const StatusComponent = ({ value, id, onChange }) => {
   const open = Boolean(anchorEl);
 
   const handleClick = (event) => {
+    event.stopPropagation();
+
     setAnchorEl(event.currentTarget);
   };
 
@@ -77,7 +69,7 @@ export const StatusComponent = ({ value, id, onChange }) => {
     setAnchorEl(null);
   };
 
-  const handleStatusSelect = (status) => {
+  const handleStatusSelect = (status, e) => {
     onChange(status); // Call the status change function passed from parent
     handleClose();
   };

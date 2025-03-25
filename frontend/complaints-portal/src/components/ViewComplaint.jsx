@@ -6,6 +6,7 @@ import { StatusComponent } from "./ComplaintsTableHelper";
 import { beatsList } from "../beatsData/beats";
 import useStore from "../store/store";
 const API_URL = import.meta.env.VITE_API_URL;
+import { toast } from "react-toastify";
 
 export const handleFieldChange = async (complaintId, field, value, updateComplaint, onSuccess) => {
   const payload = {
@@ -30,8 +31,30 @@ export const handleFieldChange = async (complaintId, field, value, updateComplai
       if (onSuccess) {
         onSuccess();
       }
+      toast("Field updated successfully", {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: false,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        type: "success",
+        theme: "dark",
+      });
     } else {
       console.error("Error:", response.statusText);
+      toast("Failed to update field", {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: false,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        type: "success",
+        theme: "dark",
+      });
     }
   } catch (error) {
     console.error("Request failed:", error);
@@ -271,7 +294,7 @@ const ViewComplaint = ({ complaint, setSelectedComplaint, setOpenDetailsDialog, 
                 officersNotes: notes,
               }));
 
-              // setOpenDetailsDialog(false);
+              setOpenDetailsDialog(false);
             });
           }}
         >

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Autocomplete, Button, Stack, TextField, MenuItem, Select, FormControl, InputLabel, RadioGroup, FormControlLabel, Radio } from "@mui/material";
+import { Autocomplete, Button, Stack, TextField, MenuItem, Select, FormControl, InputLabel, RadioGroup, FormControlLabel, Radio, Chip } from "@mui/material";
 import { DatePicker, DateTimePicker, LocalizationProvider, TimePicker } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import EmailIcon from "@mui/icons-material/Email";
@@ -9,6 +9,7 @@ import useStore from "../store/store";
 import { useLocation, useNavigate } from "react-router-dom";
 import { beatsList } from "../beatsData/beats";
 import SendEmail from "./SendEmail";
+const API_URL = import.meta.env.VITE_API_URL;
 
 const Filters = () => {
   const { setComplaints, selectedRows, currentPage, setLoading, setPagination } = useStore();
@@ -77,12 +78,10 @@ const Filters = () => {
     setFiltersState(newFilter || filters);
     getData(newFilter || filters);
   };
+  const formatDate = (date) => (date ? new Date(date).toISOString().split("T")[0] : "");
+  const formatTime = (time) => (time ? new Date(time).toTimeString().split(" ")[0] : "");
 
   const getData = async (filters) => {
-    const formatDate = (date) => (date ? new Date(date).toISOString().split("T")[0] : "");
-    const formatTime = (time) => (time ? new Date(time).toTimeString().split(" ")[0] : "");
-
-    const API_URL = "https://5xzi6qe2t2.execute-api.us-west-2.amazonaws.com/Development/db-filter-query-api";
     // Prepare API payload based on updated filters
     const apiPayload = {
       tableName: "Complaints_table",
@@ -98,7 +97,7 @@ const Filters = () => {
     };
     setLoading(true);
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetch(API_URL + "/Development/db-filter-query-api", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -111,8 +110,13 @@ const Filters = () => {
       }
 
       const responseData = await response.json();
-      setComplaints(responseData.complaintsData || dummyRows);
-      setPagination(responseData.page - 1, responseData.totalComplaint, responseData.totalPages);
+      if (responseData.page === -1) {
+        setComplaints([]);
+        setPagination(0, 0, 1);
+      } else {
+        setComplaints(responseData.complaintsData || dummyRows);
+        setPagination(responseData.page - 1, responseData.totalComplaint, responseData.totalPages);
+      }
       setLoading(false);
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -139,6 +143,7 @@ const Filters = () => {
       updatedState = { ...filtersState, [key]: newValue };
       updateURLWithFilters(updatedState);
       setFiltersState(updatedState);
+      getData(updatedState);
     }
 
     // Case 3: If 'mainFilter' is updated but is NOT 'timeRange' or 'dateRange', reset state with the new main filter
@@ -210,118 +215,174 @@ const Filters = () => {
   const showEmailDialog = (params) => {
     setOpenEmailDialog(true);
   };
+  const handleChipClick = (key) => {
+    if (filtersState.mainFilter === key) {
+      setFiltersState((prev) => {
+        return { ...prev, mainFilter: "" };
+      });
+    } else {
+      setFiltersState((prev) => {
+        return { ...prev, mainFilter: key };
+      });
+    }
+  };
+  const getChipLabel = (option) => {
+    const formatDisplayDate = (dateString) => {
+      return dateString ? dayjs(dateString).format("MM/DD/YYYY") : "";
+    };
 
+    const formatDisplayTime = (timeString) => {
+      return timeString ? dayjs(timeString, "HH:mm").format("hh:mm A") : "";
+    };
+    if (!filtersState[option.key] || (Array.isArray(filtersState[option.key]) && filtersState[option.key].length === 0)) {
+      return option.value;
+    } else if (option.key === "timeRange") {
+      if (Array.isArray(filtersState[option.key]) && filtersState[option.key].every((val) => val !== null)) {
+        return option.value + "-" + formatDisplayTime(filtersState[option.key][0]) + "-" + formatDisplayTime(filtersState[option.key][1]);
+      } else if (Array.isArray(filtersState[option.key]) && filtersState[option.key][0]) {
+        return option.value + "- From " + formatDisplayTime(filtersState[option.key][0]);
+      } else if (Array.isArray(filtersState[option.key]) && filtersState[option.key][1]) {
+        return option.value + "- Till " + formatDisplayTime(filtersState[option.key][1]);
+      } else return option.value;
+    } else if (option.key === "dateRange") {
+      if (Array.isArray(filtersState[option.key]) && filtersState[option.key].every((val) => val !== null)) {
+        return option.value + "-" + formatDisplayDate(filtersState[option.key][0]) + "-" + formatDisplayDate(filtersState[option.key][1]);
+      } else if (Array.isArray(filtersState[option.key]) && filtersState[option.key][0]) {
+        return option.value + "- From " + formatDisplayDate(filtersState[option.key][0]);
+      } else if (Array.isArray(filtersState[option.key]) && filtersState[option.key][1]) {
+        return option.value + "- Till " + formatDisplayDate(filtersState[option.key][1]);
+      } else {
+        return option.value;
+      }
+    }
+    return `${option.value} - ${filtersState[option.key]}`;
+  };
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <Stack direction="row" justifyContent={"space-between"} sx={{ width: "100%" }}>
-        <Stack direction="row" justifyContent={"flex-start"} spacing={2}>
-          {/* Main Filter Selector */}
-          <Autocomplete
-            sx={{ width: "15rem" }}
-            size="small"
-            value={mainFilterOptions.find((option) => option.key === filtersState.mainFilter) || null}
-            onChange={(event, newValue) => handleFilterChange("mainFilter", newValue ? newValue.key : null)}
-            options={mainFilterOptions}
-            getOptionLabel={(option) => option.value} // Display the 'value' while storing the 'key'
-            renderInput={(params) => <TextField {...params} label="Filter" />}
-          />
-
-          {/* Conditional Fields Based on Main Filter */}
-          {/* Time Range Pickers */}
-          {filtersState.mainFilter === "timeRange" && (
-            <Stack direction="row" spacing={2}>
-              <TimePicker
-                label="Start Time"
-                sx={{
-                  "& .MuiInputBase-root": { height: "40px" },
-                  "& .MuiInputLabel-root": {
-                    top: "-6px",
-                  },
-                }}
-                value={filtersState.timeRange[0]}
-                onChange={(newValue) => {
-                  // Ensure End Time is not before Start Time
-                  const updatedEndTime = filtersState.timeRange[1] && dayjs(newValue).isAfter(filtersState.timeRange[1]) ? null : filtersState.timeRange[1];
-                  handleFilterChange("timeRange", [newValue, updatedEndTime]);
-                }}
-                renderInput={(params) => <TextField {...params} size="small" sx={{ height: "40px", "& .MuiInputBase-root-MuiOutlinedInput-root": { height: "40px" } }} />}
-                slotProps={{
-                  field: { clearable: true },
-                }}
-              />
-              <TimePicker
-                sx={{
-                  "& .MuiInputBase-root": { height: "40px" },
-                  "& .MuiInputLabel-root": {
-                    top: "-6px",
-                  },
-                }}
-                label="End Time"
-                value={filtersState.timeRange[1]}
-                minTime={filtersState.timeRange[0]} // Prevent selecting time before start time
-                onChange={(newValue) => handleFilterChange("timeRange", [filtersState.timeRange[0], newValue])}
-                renderInput={(params) => <TextField {...params} size="small" sx={{ height: "40px", "& .MuiInputBase-root": { height: "40px" } }} />}
-                slotProps={{
-                  field: { clearable: true },
-                }}
-              />
-            </Stack>
-          )}
-
-          {/* Beat Number - Now with multiple selection */}
-          {filtersState.mainFilter === "beatNumber" && <Autocomplete sx={{ width: "15rem" }} size="small" multiple value={filtersState.beatNumber} onChange={(event, newValue) => handleFilterChange("beatNumber", newValue)} options={beatsList} renderInput={(params) => <TextField {...params} label="Beat Number" />} />}
-
-          {/* Date Range Pickers with Validation */}
-          {filtersState.mainFilter === "dateRange" && (
-            <Stack direction="row" spacing={2}>
-              <DatePicker
-                label="Start Date"
-                sx={{
-                  "& .MuiInputBase-root": { height: "40px" },
-                  "& .MuiInputLabel-root": {
-                    top: "-6px",
-                  },
-                }}
-                value={filtersState.dateRange[0]}
-                onChange={(newValue) => {
-                  const updatedEndDate = filtersState.dateRange[1] && dayjs(newValue).isAfter(filtersState.dateRange[1]) ? null : filtersState.dateRange[1];
-                  handleFilterChange("dateRange", [newValue, updatedEndDate]);
-                }}
-                shouldDisableDate={(date) => filtersState.dateRange[1] && dayjs(date).isAfter(filtersState.dateRange[1])}
-                renderInput={(params) => <TextField {...params} size="small" sx={{ height: "40px", "& .MuiInputBase-root": { height: "40px" } }} />}
-                slotProps={{
-                  field: { clearable: true },
-                }}
-              />
-              <DatePicker
-                label="End Date"
-                sx={{
-                  "& .MuiInputBase-root": { height: "40px" },
-                  "& .MuiInputLabel-root": {
-                    top: "-6px",
-                  },
-                }}
-                value={filtersState.dateRange[1]}
-                minDate={filtersState.dateRange[0]} // Prevents selecting a date before Start Date
-                onChange={(newValue) => handleFilterChange("dateRange", [filtersState.dateRange[0], newValue])}
-                shouldDisableDate={(date) => filtersState.dateRange[0] && dayjs(date).isBefore(filtersState.dateRange[0])}
-                renderInput={(params) => <TextField {...params} size="small" sx={{ height: "40px", "& .MuiInputBase-root": { height: "40px" } }} />}
-                slotProps={{
-                  field: { clearable: true },
-                }}
-              />
-            </Stack>
-          )}
-
-          {/* Problem Category - Now with multiple selection */}
-          {filtersState.mainFilter === "problemCategory" && <Autocomplete sx={{ width: "15rem" }} size="small" multiple value={filtersState.problemCategory} onChange={(event, newValue) => handleFilterChange("problemCategory", newValue)} options={problemCategoryOptions} renderInput={(params) => <TextField {...params} label="Problem Category" />} />}
-
-          {filtersState.mainFilter === "complaintStatus" && <Autocomplete sx={{ width: "15rem" }} size="small" value={filtersState.complaintStatus} onChange={(event, newValue) => handleFilterChange("complaintStatus", newValue)} options={statusOptions} renderInput={(params) => <TextField {...params} label="Complaint Status" />} />}
-        </Stack>
-        <Button variant="outlined" startIcon={<EmailIcon />} size="small" onClick={showEmailDialog} disabled={selectedRows.length <= 0}>
-          Send Email
-        </Button>
+      <Stack direction="row" justifyContent="flex-start" spacing={2}>
+        {mainFilterOptions.map((option) => {
+          const isOutlined = !filtersState[option.key] || (Array.isArray(filtersState[option.key]) && (filtersState[option.key].length === 0 || filtersState[option.key].every((val) => val === null)));
+          return <Chip variant={isOutlined ? "outlined" : "filled"} color="primary" label={getChipLabel(option)} key={option.key} onClick={() => handleChipClick(option.key)} {...(!isOutlined && { onDelete: () => handleFilterChange(option.key, "") })} />;
+        })}
+        <Chip
+          label={"Reset"}
+          onClick={() => {
+            handleFilterChange("mainFilter", "");
+          }}
+        />
       </Stack>
+      {filtersState.mainFilter && (
+        <Stack direction="row" justifyContent={"space-between"} sx={{ width: "100%" }}>
+          <Stack direction="row" justifyContent={"flex-start"} spacing={2}>
+            {/* Main Filter Selector */}
+            <Autocomplete
+              sx={{ width: "15rem" }}
+              size="small"
+              disabled
+              value={mainFilterOptions.find((option) => option.key === filtersState.mainFilter) || null}
+              onChange={(event, newValue) => handleFilterChange("mainFilter", newValue ? newValue.key : null)}
+              options={mainFilterOptions}
+              getOptionLabel={(option) => option.value} // Display the 'value' while storing the 'key'
+              renderInput={(params) => <TextField {...params} label="Filter" />}
+            />
+
+            {/* Conditional Fields Based on Main Filter */}
+            {/* Time Range Pickers */}
+            {filtersState.mainFilter === "timeRange" && (
+              <Stack direction="row" spacing={2}>
+                <TimePicker
+                  label="Start Time"
+                  sx={{
+                    "& .MuiInputBase-root": { height: "40px" },
+                    "& .MuiInputLabel-root": {
+                      top: "-6px",
+                    },
+                  }}
+                  value={filtersState.timeRange[0]}
+                  onChange={(newValue) => {
+                    // Ensure End Time is not before Start Time
+                    const updatedEndTime = filtersState.timeRange[1] && dayjs(newValue).isAfter(filtersState.timeRange[1]) ? null : filtersState.timeRange[1];
+                    handleFilterChange("timeRange", [newValue, updatedEndTime]);
+                  }}
+                  renderInput={(params) => <TextField {...params} size="small" sx={{ height: "40px", "& .MuiInputBase-root-MuiOutlinedInput-root": { height: "40px" } }} />}
+                  slotProps={{
+                    field: { clearable: true },
+                  }}
+                />
+                <TimePicker
+                  sx={{
+                    "& .MuiInputBase-root": { height: "40px" },
+                    "& .MuiInputLabel-root": {
+                      top: "-6px",
+                    },
+                  }}
+                  label="End Time"
+                  value={filtersState.timeRange[1]}
+                  minTime={filtersState.timeRange[0]} // Prevent selecting time before start time
+                  onChange={(newValue) => handleFilterChange("timeRange", [filtersState.timeRange[0], newValue])}
+                  renderInput={(params) => <TextField {...params} size="small" sx={{ height: "40px", "& .MuiInputBase-root": { height: "40px" } }} />}
+                  slotProps={{
+                    field: { clearable: true },
+                  }}
+                />
+              </Stack>
+            )}
+
+            {/* Beat Number - Now with multiple selection */}
+            {filtersState.mainFilter === "beatNumber" && <Autocomplete sx={{ width: "15rem" }} size="small" multiple value={filtersState.beatNumber} onChange={(event, newValue) => handleFilterChange("beatNumber", newValue)} options={beatsList} renderInput={(params) => <TextField {...params} label="Beat Number" />} />}
+
+            {/* Date Range Pickers with Validation */}
+            {filtersState.mainFilter === "dateRange" && (
+              <Stack direction="row" spacing={2}>
+                <DatePicker
+                  label="Start Date"
+                  sx={{
+                    "& .MuiInputBase-root": { height: "40px" },
+                    "& .MuiInputLabel-root": {
+                      top: "-6px",
+                    },
+                  }}
+                  value={filtersState.dateRange[0]}
+                  onChange={(newValue) => {
+                    const updatedEndDate = filtersState.dateRange[1] && dayjs(newValue).isAfter(filtersState.dateRange[1]) ? null : filtersState.dateRange[1];
+                    handleFilterChange("dateRange", [newValue, updatedEndDate]);
+                  }}
+                  shouldDisableDate={(date) => filtersState.dateRange[1] && dayjs(date).isAfter(filtersState.dateRange[1])}
+                  renderInput={(params) => <TextField {...params} size="small" sx={{ height: "40px", "& .MuiInputBase-root": { height: "40px" } }} />}
+                  slotProps={{
+                    field: { clearable: true },
+                  }}
+                />
+                <DatePicker
+                  label="End Date"
+                  sx={{
+                    "& .MuiInputBase-root": { height: "40px" },
+                    "& .MuiInputLabel-root": {
+                      top: "-6px",
+                    },
+                  }}
+                  value={filtersState.dateRange[1]}
+                  minDate={filtersState.dateRange[0]} // Prevents selecting a date before Start Date
+                  onChange={(newValue) => handleFilterChange("dateRange", [filtersState.dateRange[0], newValue])}
+                  shouldDisableDate={(date) => filtersState.dateRange[0] && dayjs(date).isBefore(filtersState.dateRange[0])}
+                  renderInput={(params) => <TextField {...params} size="small" sx={{ height: "40px", "& .MuiInputBase-root": { height: "40px" } }} />}
+                  slotProps={{
+                    field: { clearable: true },
+                  }}
+                />
+              </Stack>
+            )}
+
+            {/* Problem Category - Now with multiple selection */}
+            {filtersState.mainFilter === "problemCategory" && <Autocomplete sx={{ width: "15rem" }} size="small" multiple value={filtersState.problemCategory} onChange={(event, newValue) => handleFilterChange("problemCategory", newValue)} options={problemCategoryOptions} renderInput={(params) => <TextField {...params} label="Problem Category" />} />}
+
+            {filtersState.mainFilter === "complaintStatus" && <Autocomplete sx={{ width: "15rem" }} size="small" value={filtersState.complaintStatus} onChange={(event, newValue) => handleFilterChange("complaintStatus", newValue)} options={statusOptions} renderInput={(params) => <TextField {...params} label="Complaint Status" />} />}
+          </Stack>
+          <Button variant="outlined" startIcon={<EmailIcon />} size="small" onClick={showEmailDialog} disabled={selectedRows.length <= 0}>
+            Send Email
+          </Button>
+        </Stack>
+      )}
       <SendEmail openEmailDialog={openEmailDialog} setOpenEmailDialog={setOpenEmailDialog} />
     </LocalizationProvider>
   );
