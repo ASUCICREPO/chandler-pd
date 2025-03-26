@@ -16,7 +16,7 @@ const CustomBeatPopup = ({ beat, position, onClose }) => {
         left: `${position.x}px`,
         top: `${position.y}px`,
         transform: "translate(-50%, -100%)",
-        borderRadius: 1,
+
         borderRadius: "8px",
         zIndex: 1000,
         minWidth: "220px",

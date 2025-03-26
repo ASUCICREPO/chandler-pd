@@ -5,6 +5,8 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CloseIcon from "@mui/icons-material/Close";
 import useStore from "../store/store";
 import { statusColors } from "./ComplaintsTableHelper";
+import { toast } from "react-toastify";
+const API_URL = import.meta.env.VITE_API_URL;
 
 const SendEmail = ({ setOpenEmailDialog, openEmailDialog }) => {
   const { complaints, selectedRows } = useStore();
@@ -20,6 +22,11 @@ const SendEmail = ({ setOpenEmailDialog, openEmailDialog }) => {
   const popperRef = useRef(null);
 
   const emailDomains = ["@chandleraz.gov", "@chandlerazpd.gov"];
+
+  useEffect(() => {
+    // Filter complaints based on selected rows
+    console.log(emails);
+  }, [emails]);
 
   useEffect(() => {
     // Filter complaints based on selected rows
@@ -131,18 +138,67 @@ const SendEmail = ({ setOpenEmailDialog, openEmailDialog }) => {
     setEmails(emails.filter((email) => email !== emailToDelete));
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (emails.length === 0) {
       setEmailError("At least one email is required");
       return;
     }
+    try {
+      const response = await fetch(`${API_URL}/Development/send-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          selectedComplaints: selectedComplaints, //only selected objects
+          sendTo: emails[0],
+        }),
+      });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      toast("Email sent successfully", {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: false,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        type: "success",
+        theme: "dark",
+      });
+
+      onClose();
+    } catch (error) {
+      toast("Could'nt send email", {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: false,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        type: "error",
+        theme: "dark",
+      });
+    }
     // Handle email sending logic here
     console.log("Sending email to:", emails);
     console.log("Selected complaints:", selectedComplaints);
-    setOpenEmailDialog(false);
   };
 
+  const onClose = () => {
+    setOpenEmailDialog(false);
+    setEmailInput("");
+    setEmails([]);
+    setEmailError("");
+    setSelectedComplaints([]);
+    setShowSuggestions(false);
+    setCursorPosition(0);
+    setSuggestions(false);
+  };
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
@@ -153,7 +209,7 @@ const SendEmail = ({ setOpenEmailDialog, openEmailDialog }) => {
     <Dialog
       maxWidth="md"
       open={openEmailDialog}
-      onClose={() => setOpenEmailDialog(false)}
+      onClose={() => onClose()}
       sx={{
         "& .MuiDialog-paper": {
           minWidth: "50vw",
@@ -177,7 +233,7 @@ const SendEmail = ({ setOpenEmailDialog, openEmailDialog }) => {
               mr: 1,
               color: (theme) => theme.palette.getContrastText(theme.palette.primary.main),
             }}
-            onClick={() => setOpenEmailDialog(false)}
+            onClick={() => onClose()}
           >
             <ArrowBackIcon />
           </IconButton>
@@ -204,68 +260,70 @@ const SendEmail = ({ setOpenEmailDialog, openEmailDialog }) => {
               ))}
             </Box>
 
-            <ClickAwayListener onClickAway={() => setShowSuggestions(false)}>
-              <Box sx={{ position: "relative" }}>
-                <TextField
-                  fullWidth
-                  variant="outlined"
-                  value={emailInput}
-                  onChange={handleEmailChange}
-                  onKeyDown={handleKeyDown}
-                  onBlur={() => {
-                    // Delay to allow clicking on suggestions
-                    setTimeout(() => {
-                      if (!popperRef.current?.contains(document.activeElement)) {
-                        setShowSuggestions(false);
-                        if (emailInput && !emailError) {
-                          addEmail();
+            {emails.length === 0 && (
+              <ClickAwayListener onClickAway={() => setShowSuggestions(false)}>
+                <Box sx={{ position: "relative" }}>
+                  <TextField
+                    fullWidth
+                    variant="outlined"
+                    value={emailInput}
+                    onChange={handleEmailChange}
+                    onKeyDown={handleKeyDown}
+                    onBlur={() => {
+                      // Delay to allow clicking on suggestions
+                      setTimeout(() => {
+                        if (!popperRef.current?.contains(document.activeElement)) {
+                          setShowSuggestions(false);
+                          if (emailInput && !emailError) {
+                            addEmail();
+                          }
                         }
-                      }
-                    }, 100);
-                  }}
-                  error={!!emailError}
-                  helperText={emailError || "Press Enter to add multiple emails. Type @ to see domain suggestions."}
-                  placeholder="user@chandleraz.gov or user@chandlerazpd.gov"
-                  inputRef={inputRef}
-                />
-
-                {showSuggestions && (
-                  <Paper
-                    ref={popperRef}
-                    elevation={3}
-                    sx={{
-                      position: "absolute",
-                      width: "100%",
-                      maxHeight: "150px",
-                      overflowY: "auto",
-                      zIndex: 1300,
-                      mt: 0.5,
+                      }, 100);
                     }}
-                  >
-                    <List sx={{ p: 0 }}>
-                      {suggestions.map((suggestion, index) => (
-                        <ListItem
-                          button
-                          key={index}
-                          onClick={() => selectSuggestion(suggestion)}
-                          onKeyDown={(e) => handleSuggestionKeyDown(e, index)}
-                          tabIndex={0}
-                          data-suggestion-index={index}
-                          sx={{
-                            py: 1,
-                            "&:hover": {
-                              backgroundColor: (theme) => theme.palette.action.hover,
-                            },
-                          }}
-                        >
-                          <ListItemText primary={suggestion} />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </Paper>
-                )}
-              </Box>
-            </ClickAwayListener>
+                    error={!!emailError}
+                    helperText={emailError || "Press Enter to add multiple emails. Type @ to see domain suggestions."}
+                    placeholder="user@chandleraz.gov or user@chandlerazpd.gov"
+                    inputRef={inputRef}
+                  />
+
+                  {showSuggestions && (
+                    <Paper
+                      ref={popperRef}
+                      elevation={3}
+                      sx={{
+                        position: "absolute",
+                        width: "100%",
+                        maxHeight: "150px",
+                        overflowY: "auto",
+                        zIndex: 1300,
+                        mt: 0.5,
+                      }}
+                    >
+                      <List sx={{ p: 0 }}>
+                        {suggestions.map((suggestion, index) => (
+                          <ListItem
+                            button
+                            key={index}
+                            onClick={() => selectSuggestion(suggestion)}
+                            onKeyDown={(e) => handleSuggestionKeyDown(e, index)}
+                            tabIndex={0}
+                            data-suggestion-index={index}
+                            sx={{
+                              py: 1,
+                              "&:hover": {
+                                backgroundColor: (theme) => theme.palette.action.hover,
+                              },
+                            }}
+                          >
+                            <ListItemText primary={suggestion} />
+                          </ListItem>
+                        ))}
+                      </List>
+                    </Paper>
+                  )}
+                </Box>
+              </ClickAwayListener>
+            )}
           </Box>
         </Box>
 
@@ -361,7 +419,7 @@ const SendEmail = ({ setOpenEmailDialog, openEmailDialog }) => {
           borderTop: "1px solid #eee",
         }}
       >
-        <Button sx={{ mr: 2 }} variant="text" onClick={() => setOpenEmailDialog(false)}>
+        <Button sx={{ mr: 2 }} variant="text" onClick={() => onClose()}>
           Cancel
         </Button>
         <Button variant="contained" onClick={handleSend} disabled={emails.length === 0}>

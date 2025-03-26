@@ -259,17 +259,21 @@ const Filters = () => {
   };
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <Stack direction="row" justifyContent="flex-start" spacing={2}>
-        {mainFilterOptions.map((option) => {
-          const isOutlined = !filtersState[option.key] || (Array.isArray(filtersState[option.key]) && (filtersState[option.key].length === 0 || filtersState[option.key].every((val) => val === null)));
-          return <Chip variant={isOutlined ? "outlined" : "filled"} color="primary" label={getChipLabel(option)} key={option.key} onClick={() => handleChipClick(option.key)} {...(!isOutlined && { onDelete: () => handleFilterChange(option.key, "") })} />;
-        })}
-        <Chip
-          label={"Reset"}
-          onClick={() => {
-            handleFilterChange("mainFilter", "");
-          }}
-        />
+      <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2} sx={{ width: "100%" }}>
+        {/* Left-aligned filter chips */}
+        <Stack direction="row" spacing={1} flexWrap="wrap">
+          {mainFilterOptions.map((option) => {
+            const isOutlined = !filtersState[option.key] || (Array.isArray(filtersState[option.key]) && (filtersState[option.key].length === 0 || filtersState[option.key].every((val) => val === null)));
+
+            return <Chip variant={isOutlined ? "outlined" : "filled"} color="primary" label={getChipLabel(option)} key={option.key} onClick={() => handleChipClick(option.key)} {...(!isOutlined && { onDelete: () => handleFilterChange(option.key, "") })} />;
+          })}
+          <Chip label={"Reset"} onClick={() => handleFilterChange("mainFilter", "")} />
+        </Stack>
+        <Button variant="outlined" startIcon={<EmailIcon />} size="small" onClick={showEmailDialog} disabled={selectedRows.length <= 0}>
+          Send Email
+        </Button>
+        {/* Right-aligned SendEmail component */}
+        <SendEmail openEmailDialog={openEmailDialog} setOpenEmailDialog={setOpenEmailDialog} />
       </Stack>
       {filtersState.mainFilter && (
         <Stack direction="row" justifyContent={"space-between"} sx={{ width: "100%" }}>
@@ -378,12 +382,8 @@ const Filters = () => {
 
             {filtersState.mainFilter === "complaintStatus" && <Autocomplete sx={{ width: "15rem" }} size="small" value={filtersState.complaintStatus} onChange={(event, newValue) => handleFilterChange("complaintStatus", newValue)} options={statusOptions} renderInput={(params) => <TextField {...params} label="Complaint Status" />} />}
           </Stack>
-          <Button variant="outlined" startIcon={<EmailIcon />} size="small" onClick={showEmailDialog} disabled={selectedRows.length <= 0}>
-            Send Email
-          </Button>
         </Stack>
       )}
-      <SendEmail openEmailDialog={openEmailDialog} setOpenEmailDialog={setOpenEmailDialog} />
     </LocalizationProvider>
   );
 };
