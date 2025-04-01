@@ -99,7 +99,7 @@ export const CountCards = () => {
             backgroundColor: `${statusColors["Follow-Up"]}1A`,
           }}
         >
-          Total Follow-Up Cases - {totalStatusCounts.TotalFollowUp}
+          Total Follow-Up Cases - {totalStatusCounts["TotalFollow-Up"]}
         </Stack>
         <Stack
           direction="row"
@@ -110,7 +110,7 @@ export const CountCards = () => {
             backgroundColor: `${statusColors["Red-Star"]}1A`,
           }}
         >
-          Total Red-Star Cases - {totalStatusCounts.TotalRedStar}
+          Total Red-Star Cases - {totalStatusCounts["TotalRed-Star"]}
         </Stack>
       </Stack>
     </>

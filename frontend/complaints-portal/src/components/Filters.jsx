@@ -24,7 +24,6 @@ const Filters = () => {
   };
   const [filtersState, setFiltersState] = useState(resetState);
 
-  const [beatOptions, setBeatOptions] = useState(beatsList || []);
   const [statusOptions, setStatusOptions] = useState(["Open", "Closed", "Follow-Up", "Red-Star"]);
   const [problemCategoryOptions, setProblemCategoryOptions] = useState(["Speed", "Stop sign", "Red light", "School traffic complaint", "Racing", "Reckless Driving"]);
   const mainFilterOptions = [
@@ -114,9 +113,9 @@ const Filters = () => {
         setComplaints([]);
         setTotalStatusCounts({
           TotalClosed: 0,
-          TotalFollowUp: 0,
+          "TotalFollow-Up": 0,
           TotalOpen: 0,
-          TotalRedStar: 0,
+          "TotalRed-Star": 0,
         });
         setPagination(0, 0, 1);
       } else {
@@ -162,14 +161,18 @@ const Filters = () => {
     }
 
     // Case 4: If 'mainFilter' is set to 'timeRange' or 'dateRange', reset state and check for valid array values
-    else if (key === "mainFilter" && (newValue === "timeRange" || newValue === "dateRange")) {
-      updatedState = { ...resetState, [key]: newValue };
-      updateURLWithFilters(updatedState);
+    else if (key === "timeRange" || key === "dateRange") {
+      updatedState = { ...filtersState, [key]: newValue };
       setFiltersState(updatedState);
-
-      // Fetch data only if the new value is an array and has no null values
+      // If all values present
       if (Array.isArray(newValue) && newValue.every((val) => val !== null)) {
         getData(updatedState);
+        updateURLWithFilters(updatedState);
+      }
+      // If no values present
+      if (Array.isArray(newValue) && newValue.every((val) => val === null)) {
+        getData(updatedState);
+        updateURLWithFilters(updatedState);
       }
     }
 

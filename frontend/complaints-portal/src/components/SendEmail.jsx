@@ -151,7 +151,8 @@ const SendEmail = ({ setOpenEmailDialog, openEmailDialog }) => {
         },
         body: JSON.stringify({
           selectedComplaints: selectedComplaints, //only selected objects
-          sendTo: emails[0],
+          sendTo: "amanda34@asu.edu",
+          // sendTo: emails[0],
         }),
       });
 

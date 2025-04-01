@@ -1344,5 +1344,4 @@ export const beatsData = {
     },
   ],
 };
-
-export const beatsList = [...new Set(beatsData.features.map((beat) => beat.attributes.POLICE_BEAT))];
+export const beatsList = [...new Set(beatsData.features.map((beat) => beat.attributes.POLICE_BEAT))].sort((a, b) => a - b);

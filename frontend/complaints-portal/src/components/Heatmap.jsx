@@ -51,14 +51,14 @@ const PoliceBeatsMap = () => {
   }, []);
   useEffect(() => {
     if (!beatsData.features) return; // Wait until data is loaded
-    setLoading(true);
+    // setLoading(true);
     // Apply counts to beats layer once both data are available
     beatsData.features.forEach((feature) => {
       const beatId = feature.attributes.POLICE_BEAT;
       feature.attributes.COMPLAINT_COUNT = complaintsData[beatId] || 0;
     });
 
-    setLoading(true);
+    // setLoading(true);
     // Load ArcGIS modules with additional components for enhanced visualization
     loadModules(["esri/Map", "esri/views/MapView", "esri/layers/FeatureLayer", "esri/geometry/SpatialReference", "esri/renderers/SimpleRenderer", "esri/symbols/SimpleFillSymbol", "esri/widgets/Legend", "esri/widgets/Home", "esri/widgets/Search", "esri/widgets/ScaleBar", "esri/widgets/BasemapGallery", "esri/widgets/Expand", "esri/geometry/Extent", "esri/widgets/Feature"], { css: true })
       .then(([Map, MapView, FeatureLayer, SpatialReference, SimpleRenderer, SimpleFillSymbol, Legend, Home, Search, ScaleBar, BasemapGallery, Expand, Extent, Feature]) => {
