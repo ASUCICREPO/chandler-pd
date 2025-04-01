@@ -286,16 +286,18 @@ const ViewComplaint = ({ complaint, setSelectedComplaint, setOpenDetailsDialog, 
           Cancel
         </Button>
         <Button
+          disabled={complaint.officersNotes === notes}
           variant="contained"
           onClick={(e) => {
-            handleFieldChange(complaint.complaintId, "officersNotes", notes, updateComplaint, function () {
-              setSelectedComplaint((prevState) => ({
-                ...prevState,
-                officersNotes: notes,
-              }));
-
-              setOpenDetailsDialog(false);
-            });
+            if (complaint.officersNotes !== notes) {
+              handleFieldChange(complaint.complaintId, "officersNotes", notes, updateComplaint, function () {
+                setSelectedComplaint((prevState) => ({
+                  ...prevState,
+                  officersNotes: notes,
+                }));
+                setOpenDetailsDialog(false);
+              });
+            }
           }}
         >
           Save
