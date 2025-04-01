@@ -12,7 +12,7 @@ import SendEmail from "./SendEmail";
 const API_URL = import.meta.env.VITE_API_URL;
 
 const Filters = () => {
-  const { setComplaints, selectedRows, refresh, currentPage, setLoading, setPagination } = useStore();
+  const { setComplaints, setTotalStatusCounts, selectedRows, refresh, currentPage, setLoading, setPagination } = useStore();
   const resetState = {
     mainFilter: "",
     timeRange: [null, null], // Stores start and end times
@@ -112,11 +112,19 @@ const Filters = () => {
       const responseData = await response.json();
       if (responseData.page === -1) {
         setComplaints([]);
+        setTotalStatusCounts({
+          TotalClosed: 0,
+          TotalFollowUp: 0,
+          TotalOpen: 0,
+          TotalRedStar: 0,
+        });
         setPagination(0, 0, 1);
       } else {
         setComplaints(responseData.complaintsData || dummyRows);
         setPagination(responseData.page - 1, responseData.totalComplaint, responseData.totalPages);
+        setTotalStatusCounts(responseData.totalStatusCounts);
       }
+
       setLoading(false);
     } catch (error) {
       console.error("Error fetching data:", error);

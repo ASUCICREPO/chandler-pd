@@ -1,6 +1,6 @@
 import * as React from "react";
 import { styled, alpha } from "@mui/material/styles";
-import { Button, Menu, MenuItem, Box } from "@mui/material";
+import { Button, Menu, MenuItem, Box, Stack } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { GridPagination } from "@mui/x-data-grid";
 import useStore from "../store/store";
@@ -14,7 +14,7 @@ export const statusColors = {
 };
 // Custom Footer with Pagination on Left & Buttons on Right
 export const CustomFooter = () => {
-  const { currentPage, setCurrentPage, setSelectedRows, selectedRows } = useStore();
+  const { currentPage, setCurrentPage, setSelectedRows, totalStatusCounts, selectedRows } = useStore();
   const [open, setOpen] = React.useState(false);
   const [next, setNext] = React.useState(1);
   return (
@@ -28,7 +28,9 @@ export const CustomFooter = () => {
         borderTop: "1px solid #ddd",
       }}
     >
+      <CountCards />
       {/* Left-aligned pagination */}
+
       <GridPagination
         page={currentPage}
         onPageChange={(e, newPage) => {
@@ -54,7 +56,66 @@ export const CustomFooter = () => {
     </Box>
   );
 };
+const cardClass = {
+  justifyContent: "flex-start",
+  alignItems: "flex-start",
+  borderRadius: "4px",
+  border: "1px solid",
+  padding: "4px 6px",
+};
+export const CountCards = () => {
+  const { totalStatusCounts } = useStore();
 
+  return (
+    <>
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{
+          justifyContent: "flex-start",
+          alignItems: "flex-start",
+        }}
+      >
+        <Stack direction="row" spacing={2} sx={{ ...cardClass, borderColor: statusColors["Open"], backgroundColor: `${statusColors["Open"]}1A` }}>
+          Total Open Cases - {totalStatusCounts.TotalOpen}
+        </Stack>
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{
+            ...cardClass,
+            borderColor: statusColors["Closed"],
+            backgroundColor: `${statusColors["Closed"]}1A`,
+          }}
+        >
+          Total Closed Cases - {totalStatusCounts.TotalClosed}
+        </Stack>
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{
+            ...cardClass,
+            borderColor: statusColors["Follow-Up"],
+            backgroundColor: `${statusColors["Follow-Up"]}1A`,
+          }}
+        >
+          Total Follow-Up Cases - {totalStatusCounts.TotalFollowUp}
+        </Stack>
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{
+            ...cardClass,
+            borderColor: statusColors["Red-Star"],
+            backgroundColor: `${statusColors["Red-Star"]}1A`,
+          }}
+        >
+          Total Red-Star Cases - {totalStatusCounts.TotalRedStar}
+        </Stack>
+      </Stack>
+    </>
+  );
+};
 export const StatusComponent = ({ value, id, onChange }) => {
   const [anchorEl, setAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);

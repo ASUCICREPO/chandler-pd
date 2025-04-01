@@ -7,12 +7,14 @@ const useStore = create((set) => ({
   currentPage: 0,
   rowsPerPage: 10,
   totalComplaints: 1,
+  totalStatusCounts: {},
   selectedRows: [],
   loading: true,
   refresh: false,
 
   // Setters for each state variable
   setComplaints: (aComplaints) => set({ complaints: aComplaints }),
+  setTotalStatusCounts: (totalStatusCounts) => set({ totalStatusCounts: totalStatusCounts }),
   updateComplaint: (complaintId, field, value) => {
     set((state) => {
       const complaintIndex = state.complaints.findIndex((complaint) => complaint.complaintId === complaintId);
