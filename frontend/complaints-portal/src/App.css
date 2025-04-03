@@ -10,6 +10,30 @@ body {
   font-family: "Inter", sans-serif;
 }
 
+.appWidth100 {
+  width: 100%;
+}
+p {
+  font-size: 13px;
+}
+.appHeight100 {
+  height: 100%;
+}
+/* Base styles for .chatScrollContainer */
+.chatScrollContainer {
+  overflow-y: auto;
+  /* width: 100%; */
+  padding: 1rem;
+  height: calc(100vh - 9rem);
+}
+/* .chatInputContainer {
+} */
+.chatInputContainer,
+.chatScrollContainer {
+  background: #fbfbf8;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+}
 .MuiTypography-root,
 .MuiButton-root,
 .MuiInputBase-input,
@@ -47,4 +71,28 @@ body {
   height: 10.78rem;
   padding: 0rem 2rem 0rem 2rem;
   width: calc(100% - 4rem);
+}
+
+/* Text Align Classes */
+.MuiGrid-root.MuiGrid-item.userMessage {
+  text-align: start;
+  padding: 10px !important;
+  max-width: 75%;
+  /* background: #f5f7fa; */
+  border-radius: 8px;
+  flex: none;
+}
+
+.MuiGrid-root.MuiGrid-item.botMessage {
+  text-align: start;
+  padding: 10px !important;
+  max-width: 75%;
+  /* background: #e1ebff; */
+  border-radius: 8px;
+  flex: none;
+}
+.botMessage > p {
+  font-family: "Roboto", sans-serif;
+  font-size: 0.875rem;
+  margin: 0px;
 }
