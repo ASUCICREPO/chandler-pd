@@ -6,7 +6,7 @@ const shuffleArray = (array) => {
 };
 
 const FAQExamples = ({ onPromptClick }) => {
-  const [faqs, setFaqs] = useState(shuffleArray(["What all are the new complaints that was received today?", "Which beat number has the highest number of open cases?", "Which beat number has received more number of complaints?", "How many complaints were closed yesterday ? List them"]).slice(0, 4));
+  const [faqs, setFaqs] = useState(shuffleArray(["What are the new complaints that were received today?", "Show me which red lights have been run.", "Can you list all of the complaints closed yesterday?", "Can you display all of the complaints we need to follow up on?"]).slice(0, 4));
   return (
     <Box display="flex" justifyContent="center" flexDirection={"column"} alignItems="center" gap={10}>
       <Typography variant="h5">What can I help with?</Typography>
