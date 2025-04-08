@@ -254,8 +254,8 @@ const ViewComplaint = ({ complaint, setSelectedComplaint, setOpenDetailsDialog, 
             <Box>
               <Typography variant="body1">Intersection 1: {`${complaint.intersection1Direction} ${complaint.intersection1Street}`}</Typography>
               <Typography variant="body1">Intersection 2: {`${complaint.intersection2Direction} ${complaint.intersection2Street}`}</Typography>
-              <Typography variant="body1">Intersection Zipcode: {complaint.intersectionZipcode}</Typography>
-              <Typography variant="body1">Direction: {`${complaint.addressDirection}`}</Typography>
+              <Typography variant="body1">Zipcode: {complaint.intersectionZipcode}</Typography>
+              <Typography variant="body1">Direction: {`${complaint.intersection1Direction}`}</Typography>
             </Box>
           )}
 

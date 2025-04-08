@@ -151,15 +151,17 @@ const SendEmail = ({ setOpenEmailDialog, openEmailDialog }) => {
         },
         body: JSON.stringify({
           selectedComplaints: selectedComplaints, //only selected objects
-          sendTo: "amanda34@asu.edu",
-          // sendTo: emails[0],
+          // sendTo: "amanda34@asu.edu",
+          sendTo: emails[0],
         }),
       });
 
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
-      toast("Email sent successfully", {
+
+      const responseData = await response.json();
+      toast(responseData.message, {
         position: "bottom-right",
         autoClose: 5000,
         hideProgressBar: false,
