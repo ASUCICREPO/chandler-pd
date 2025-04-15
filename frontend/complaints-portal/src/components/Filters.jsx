@@ -344,7 +344,7 @@ const Filters = () => {
             )}
 
             {/* Beat Number - Now with multiple selection */}
-            {filtersState.mainFilter === "beatNumber" && <Autocomplete sx={{ width: "15rem" }} size="small" multiple value={filtersState.beatNumber} onChange={(event, newValue) => handleFilterChange("beatNumber", newValue)} options={beatsList} renderInput={(params) => <TextField {...params} label="Beat Number" />} />}
+            {filtersState.mainFilter === "beatNumber" && <Autocomplete sx={{ width: "100%" }} size="small" multiple value={filtersState.beatNumber} limitTags={7} onChange={(event, newValue) => handleFilterChange("beatNumber", newValue)} options={beatsList} renderInput={(params) => <TextField {...params} label="Beat Number" />} />}
 
             {/* Date Range Pickers with Validation */}
             {filtersState.mainFilter === "dateRange" && (
@@ -389,7 +389,7 @@ const Filters = () => {
             )}
 
             {/* Problem Category - Now with multiple selection */}
-            {filtersState.mainFilter === "problemCategory" && <Autocomplete sx={{ width: "15rem" }} size="small" multiple value={filtersState.problemCategory} onChange={(event, newValue) => handleFilterChange("problemCategory", newValue)} options={problemCategoryOptions} renderInput={(params) => <TextField {...params} label="Problem Category" />} />}
+            {filtersState.mainFilter === "problemCategory" && <Autocomplete sx={{ width: "100%" }} size="small" multiple value={filtersState.problemCategory} onChange={(event, newValue) => handleFilterChange("problemCategory", newValue)} limitTags={4} options={problemCategoryOptions} renderInput={(params) => <TextField {...params} label="Problem Category" />} />}
 
             {filtersState.mainFilter === "complaintStatus" && <Autocomplete sx={{ width: "15rem" }} size="small" value={filtersState.complaintStatus} onChange={(event, newValue) => handleFilterChange("complaintStatus", newValue)} options={statusOptions} renderInput={(params) => <TextField {...params} label="Complaint Status" />} />}
           </Stack>
