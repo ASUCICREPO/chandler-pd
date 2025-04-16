@@ -18,7 +18,7 @@ dayjs.extend(utc);
 const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const problemCategoryOptions = ["Speed", "Stop sign", "Red light", "School traffic complaint", "Racing", "Reckless Driving"];
 const API_URL = import.meta.env.VITE_API_URL;
-
+console.log(API_URL);
 function App() {
   const {
     control,

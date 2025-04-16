@@ -16,7 +16,8 @@ import { ToastContainer } from "react-toastify";
 import useStore from "./store/store";
 
 const ENABLE_AUTH = import.meta.env.VITE_ENABLE_AUTH || "DISABLED";
-
+const API_URL = import.meta.env.VITE_API_URL;
+console.log(API_URL);
 function AuthenticatedApp({ signOut }) {
   return (
     <Router>
