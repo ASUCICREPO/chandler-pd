@@ -15,7 +15,7 @@ interface CdkStackProps extends cdk.StackProps {
 }
 
 export class CdkStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: CdkStackProps) {
+  constructor(scope: Construct, id: string, props: CdkStackProps) {
     super(scope, id, props);
 
     // 🔐 Store GitHub token in Secrets Manager
