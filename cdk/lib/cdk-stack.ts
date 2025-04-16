@@ -21,8 +21,8 @@ export class CdkStack extends cdk.Stack {
       secretStringValue: cdk.SecretValue.unsafePlainText(props.githubToken),
     });
 
-    // 🚀 Amplify App
-    const amplifyApp = new amplify.App(this, "ComplaintsPortalApp", {
+    // 🚀 Amplify App 1: Complaints Portal (with Auth)
+    const complaintsPortalApp = new amplify.App(this, "ComplaintsPortal", {
       sourceCodeProvider: new amplify.GitHubSourceCodeProvider({
         owner: props.githubOwner,
         repository: "chandler-pd",
@@ -55,11 +55,47 @@ export class CdkStack extends cdk.Stack {
       }),
     });
 
-    // 🌱 Add main branch
-    amplifyApp.addBranch("main");
+    complaintsPortalApp.addBranch("main");
 
-    // 🔁 Add environment variables
-    amplifyApp.addEnvironment("VITE_API_URL", props.viteApiUrl);
-    amplifyApp.addEnvironment("VITE_ENABLE_AUTH", props.viteEnableAuth);
+    complaintsPortalApp.addEnvironment("VITE_API_URL", props.viteApiUrl);
+    complaintsPortalApp.addEnvironment("VITE_ENABLE_AUTH", props.viteEnableAuth);
+
+    // 🚀 Amplify App 2: Complaints Form (NO Auth)
+    const complaintsFormApp = new amplify.App(this, "ComplaintsForm", {
+      sourceCodeProvider: new amplify.GitHubSourceCodeProvider({
+        owner: props.githubOwner,
+        repository: "chandler-pd",
+        oauthToken: githubTokenSecret.secretValue,
+      }),
+      autoBranchCreation: {
+        patterns: ["*"],
+        basicAuth: amplify.BasicAuth.fromGeneratedPassword("auto-user"),
+        pullRequestEnvironmentName: "staging",
+      },
+      buildSpec: cdk.aws_codebuild.BuildSpec.fromObjectToYaml({
+        version: "1.0",
+        frontend: {
+          phases: {
+            preBuild: {
+              commands: ["cd frontend/complaints-form", "npm ci"],
+            },
+            build: {
+              commands: ["npm run build"],
+            },
+          },
+          artifacts: {
+            baseDirectory: "frontend/complaints-form/dist",
+            files: ["**/*"],
+          },
+          cache: {
+            paths: ["frontend/complaints-form/node_modules/**/*"],
+          },
+        },
+      }),
+    });
+
+    complaintsFormApp.addBranch("main");
+
+    complaintsFormApp.addEnvironment("VITE_API_URL", props.viteApiUrl);
   }
 }
