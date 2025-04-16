@@ -17,7 +17,7 @@ export const handleFieldChange = async (complaintId, field, value, updateComplai
   };
 
   try {
-    const response = await fetch(`${API_URL}/Development/`, {
+    const response = await fetch(`${API_URL}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json", // Make sure to send JSON

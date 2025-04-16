@@ -137,7 +137,7 @@ function App() {
 
       // console.log("Submitting Data:", formattedData);
 
-      const response = await fetch(`${API_URL}/Development`, {
+      const response = await fetch(`${API_URL}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -96,7 +96,7 @@ const Filters = () => {
     };
     setLoading(true);
     try {
-      const response = await fetch(API_URL + "/Development/db-filter-query-api", {
+      const response = await fetch(API_URL + "db-filter-query-api", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

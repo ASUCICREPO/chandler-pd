@@ -144,7 +144,7 @@ const SendEmail = ({ setOpenEmailDialog, openEmailDialog }) => {
       return;
     }
     try {
-      const response = await fetch(`${API_URL}/Development/send-email`, {
+      const response = await fetch(`${API_URL}send-email`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -51,7 +51,7 @@ function ChatBody() {
     setMessageList((prevList) => [...prevList, userMessageBlock, botMessageBlock]);
 
     try {
-      const response = await fetch(`${API_URL}/Development/chatBot`, {
+      const response = await fetch(`${API_URL}chatBot`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -29,7 +29,7 @@ const PoliceBeatsMap = () => {
       try {
         // Replace with actual API endpoint from one of the available police API services
         // For example, using the Police API Client or DOJ Crime Data API
-        const response = await fetch(API_URL + "/Development/beat-open-cases");
+        const response = await fetch(API_URL + "beat-open-cases");
         const data = await response.json();
 
         setComplaintsData(data.body);
