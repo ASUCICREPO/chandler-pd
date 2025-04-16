@@ -12,6 +12,7 @@
   "dependencies": {
     "@arcgis/core": "^4.32.8",
     "@arcgis/map-components": "^4.32.11",
+    "@aws-amplify/ui-react": "^6.11.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@mui/icons-material": "^6.4.7",
@@ -21,8 +22,10 @@
     "@mui/x-data-grid-generator": "^7.28.1",
     "@mui/x-date-pickers": "^7.27.3",
     "antd": "^5.24.6",
+    "aws-amplify": "^6.14.2",
     "dayjs": "^1.11.13",
     "esri-loader": "^3.7.0",
+    "jwt-decode": "^4.0.0",
     "prop-types": "^15.8.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

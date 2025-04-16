@@ -1,10 +1,9 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
 import { DataGrid } from "@mui/x-data-grid";
-import { StatusComponent, CustomFooter, rowsDump } from "./ComplaintsTableHelper";
+import { StatusComponent, CustomFooter } from "./ComplaintsTableHelper";
 import useStore from "../store/store";
 import nodata from "../assets/nodata.gif";
-import { Dialog, DialogActions, DialogContent, Button, Skeleton, Typography } from "@mui/material";
 import dayjs from "dayjs";
 import ViewComplaint, { handleFieldChange } from "./ViewComplaint";
 

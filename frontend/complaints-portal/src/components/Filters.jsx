@@ -4,7 +4,7 @@ import { DatePicker, DateTimePicker, LocalizationProvider, TimePicker } from "@m
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import EmailIcon from "@mui/icons-material/Email";
 import dayjs from "dayjs";
-import { dummyRows, rowsDump } from "./ComplaintsTableHelper";
+import { dummyRows } from "./ComplaintsTableHelper";
 import useStore from "../store/store";
 import { useLocation, useNavigate } from "react-router-dom";
 import { beatsList } from "../beatsData/beats";

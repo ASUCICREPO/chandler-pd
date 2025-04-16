@@ -3,8 +3,9 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import LogoutIcon from "@mui/icons-material/Logout";
 import logo from "../assets/logo.png";
+const ENABLE_AUTH = import.meta.env.VITE_ENABLE_AUTH;
 
-const LeftPanel = () => {
+const LeftPanel = ({ signOut }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -29,7 +30,7 @@ const LeftPanel = () => {
   };
 
   const handleLogout = () => {
-    console.log("On Logout");
+    signOut();
   };
 
   return (
@@ -59,16 +60,19 @@ const LeftPanel = () => {
           </ListItemButton>
         </List>
 
-        {/* Logout Button */}
-        <List component="nav" aria-label="logout">
-          <ListItemButton className="logoutButton" onClick={handleLogout} sx={{ mt: 2 }}>
-            {/* Adds top margin to separate from above */}
-            <ListItemText primary="Logout" />
-            <ListItemIcon>
-              <LogoutIcon />
-            </ListItemIcon>
-          </ListItemButton>
-        </List>
+        {ENABLE_AUTH === "ENABLED" ? (
+          <List component="nav" aria-label="logout">
+            <ListItemButton className="logoutButton" onClick={handleLogout} sx={{ mt: 2 }}>
+              {/* Adds top margin to separate from above */}
+              <ListItemText primary="Logout" />
+              <ListItemIcon>
+                <LogoutIcon />
+              </ListItemIcon>
+            </ListItemButton>
+          </List>
+        ) : (
+          <></>
+        )}
       </Stack>
     </Stack>
   );

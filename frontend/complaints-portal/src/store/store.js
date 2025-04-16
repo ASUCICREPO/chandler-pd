@@ -12,6 +12,12 @@ const useStore = create((set) => ({
   loading: true,
   refresh: false,
 
+  authenticated: false,
+  isAdmin: false,
+
+  setAuthentication: (tAuthenticated) => set({ authenticated: tAuthenticated }),
+  setIsAdmin: (tIsAdmin) => set({ isAdmin: tIsAdmin }),
+
   // Setters for each state variable
   setComplaints: (aComplaints) => set({ complaints: aComplaints }),
   setTotalStatusCounts: (totalStatusCounts) => set({ totalStatusCounts: totalStatusCounts }),
