@@ -6,17 +6,262 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as ses from 'aws-cdk-lib/aws-ses';
 import * as amplify from "@aws-cdk/aws-amplify-alpha";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
+import * as iam from 'aws-cdk-lib/aws-iam';
 
 interface CdkStackProps extends cdk.StackProps {
   githubToken: string;
   githubOwner: string;
-  viteApiUrl: string;
   viteEnableAuth: string;
 }
 
 export class CdkStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: CdkStackProps) {
     super(scope, id, props);
+
+    // add api gateway, dynamodb, ses and 4 lambda functions: Add/update complaint, Query db, email invocation and heatmap api
+    const complaintTable = new dynamodb.Table(this, 'ComplaintTable', {
+      partitionKey: { name: 'complaintId', type: dynamodb.AttributeType.STRING },
+      removalPolicy: cdk.RemovalPolicy.DESTROY
+    });
+    const complaintTableArn = complaintTable.tableArn;
+
+    const beatRetrievalLayer = new lambda.LayerVersion(this, 'BeatRetrievalLayer', {
+      code: lambda.Code.fromAsset('../lambda/layers/beat_retrieval_layer'),
+      compatibleRuntimes: [lambda.Runtime.PYTHON_3_13],
+      description: 'Layer for beat retrieval dependencies',
+    });
+
+    const beatRetrievalLambda = new lambda.Function(this, 'beatRetrievalLambda', {
+      runtime: lambda.Runtime.PYTHON_3_13,
+      handler: 'beatRetrievalFn.lambda_handler',
+      code: lambda.Code.fromAsset('../lambda'),
+      environment: {
+        COMPLAINT_TABLE_NAME: complaintTable.tableName
+      },
+      layers: [beatRetrievalLayer]
+    })
+
+    const DBManagementLambda = new lambda.Function(this, 'DBManagementLambda', {
+      runtime: lambda.Runtime.PYTHON_3_13,
+      handler: 'dbManagementFn.lambda_handler',
+      code: lambda.Code.fromAsset('../lambda'),
+      environment: {
+        COMPLAINT_TABLE_NAME: complaintTable.tableName,
+        LAMBDA_FN_NAME: beatRetrievalLambda.functionName
+      },
+      role: new iam.Role(this, 'DBManagementLambdaRole', {
+        assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
+        managedPolicies: [
+          iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole'),
+          iam.ManagedPolicy.fromAwsManagedPolicyName('AWSLambda_FullAccess'),
+          iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonDynamoDBFullAccess')
+        ],
+        inlinePolicies: {
+          'LambdaInvokePolicy': new iam.PolicyDocument({
+            statements: [
+              new iam.PolicyStatement({
+                actions: ['lambda:InvokeFunction'],
+                resources: ['*']
+              })
+            ]
+          })
+        }
+      })
+    });
+    const dbQueryLambda = new lambda.Function(this, 'dbQueryLambda', {
+      runtime: lambda.Runtime.PYTHON_3_13,
+      handler: 'dbQueryFn.lambda_handler',
+      code: lambda.Code.fromAsset('../lambda'),
+      environment: {
+        COMPLAINT_TABLE_NAME: complaintTable.tableName
+      }
+    });
+    const emailHandlerLambda = new lambda.Function(this, 'EmailHandlerLambda', {
+      runtime: lambda.Runtime.PYTHON_3_13,
+      handler: 'emailHandlerFn.lambda_handler',
+      code: lambda.Code.fromAsset('../lambda'),
+      environment: {
+        COMPLAINT_TABLE_NAME: complaintTable.tableName
+      },
+      role: new iam.Role(this, 'emailHandlerLambdaRole', {
+        assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
+        managedPolicies: [
+          iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole'),
+          iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSESFullAccess')
+        ]
+      })
+    });
+    const heatmapLambda = new lambda.Function(this, 'HeatmapLambda', {
+      runtime: lambda.Runtime.PYTHON_3_13,
+      handler: 'initialHeatmapQueryFn.lambda_handler', 
+      code: lambda.Code.fromAsset('../lambda'),
+      environment: {
+        COMPLAINT_TABLE_NAME: complaintTable.tableName
+      }
+    });
+
+    complaintTable.grantReadWriteData(DBManagementLambda);
+    complaintTable.grantReadWriteData(dbQueryLambda);
+    complaintTable.grantReadWriteData(heatmapLambda);
+    complaintTable.grantReadWriteData(beatRetrievalLambda);
+    
+    // Create a new api gateway
+
+
+    const api = new apigateway.RestApi(this, 'ChandlerPDApiGateway', {
+      restApiName: 'chandlerPDAPI',
+      description: 'This is an All purpose Rest API for all backend functionality related to Chandler PD',
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: apigateway.Cors.ALL_METHODS,
+        allowHeaders: apigateway.Cors.DEFAULT_HEADERS,
+      },
+      deployOptions:{
+        stageName: 'prod'
+      },
+    });
+
+    const rootResource = api.root;
+    // proxy integration should be false
+
+    rootResource.addMethod('POST', new apigateway.LambdaIntegration(DBManagementLambda, {
+      proxy: false,
+      integrationResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Origin': "'*'",
+          'method.response.header.Access-Control-Allow-Credentials': "'true'",
+        },
+      }],
+      passthroughBehavior: apigateway.PassthroughBehavior.WHEN_NO_MATCH,
+    }), {
+      methodResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Origin': true,
+          'method.response.header.Access-Control-Allow-Credentials': true,
+        }
+      }]
+    });
+    rootResource.addMethod('PUT', new apigateway.LambdaIntegration(DBManagementLambda, {
+      proxy: false,
+      integrationResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Origin': "'*'",
+          'method.response.header.Access-Control-Allow-Credentials': "'true'",
+        },
+      }],
+      passthroughBehavior: apigateway.PassthroughBehavior.WHEN_NO_MATCH,
+    }), {
+      methodResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Origin': true,
+          'method.response.header.Access-Control-Allow-Credentials': true,
+        }
+      }]
+    });
+    // rootResource.addMethod('OPTIONS', new apigateway.LambdaIntegration(DBManagementLambda));
+    rootResource.defaultCorsPreflightOptions
+    // root
+    // rootResource.addCorsPreflight({
+    //   allowHeaders: ['Content-Type', 'X-Amz-Date', 'Authorization', 'X-Api-Key'],
+    //   allowMethods: ['OPTIONS', 'POST', 'PUT'],
+    //   allowCredentials: true,
+    //   allowOrigins: ['*'],
+    // });
+
+    const beatOpenCaseResource = rootResource.addResource('beat-open-cases');
+    beatOpenCaseResource.addMethod('GET', new apigateway.LambdaIntegration(heatmapLambda, {
+      proxy: false,
+      integrationResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Origin': "'*'",
+          'method.response.header.Access-Control-Allow-Credentials': "'true'",
+        },
+      }],
+      passthroughBehavior: apigateway.PassthroughBehavior.WHEN_NO_MATCH,
+    }), {
+      methodResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Origin': true,
+          'method.response.header.Access-Control-Allow-Credentials': true,
+        }
+      }]
+    });
+    beatOpenCaseResource.defaultCorsPreflightOptions
+
+    // const chatbotResource = rootResource.addResource('/chatBot');
+    // chatbotResource.addMethod('POST', new apigateway.LambdaIntegration(beatRetrievalLambda));
+    // chatbotResource.defaultCorsPreflightOptions
+
+    const dbQueryResource = rootResource.addResource('db-filter-query-api')
+    dbQueryResource.addMethod('POST', new apigateway.LambdaIntegration(dbQueryLambda, {
+      proxy: false,
+      integrationResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Origin': "'*'",
+          'method.response.header.Access-Control-Allow-Credentials': "'true'",
+        },
+      }],
+      passthroughBehavior: apigateway.PassthroughBehavior.WHEN_NO_MATCH,
+    }), {
+      methodResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Origin': true,
+          'method.response.header.Access-Control-Allow-Credentials': true,
+        }
+      }]
+    });
+    dbQueryResource.addMethod('PUT', new apigateway.LambdaIntegration(dbQueryLambda, {
+      proxy: false,
+      integrationResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Origin': "'*'",
+          'method.response.header.Access-Control-Allow-Credentials': "'true'",
+        },
+      }],
+      passthroughBehavior: apigateway.PassthroughBehavior.WHEN_NO_MATCH,
+    }), {
+      methodResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Origin': true,
+          'method.response.header.Access-Control-Allow-Credentials': true,
+        }
+      }]
+    });
+    dbQueryResource.defaultCorsPreflightOptions
+
+    const emailResource = rootResource.addResource('send-email')
+    emailResource.addMethod('POST', new apigateway.LambdaIntegration(emailHandlerLambda, {
+      proxy: false,
+      integrationResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Origin': "'*'",
+          'method.response.header.Access-Control-Allow-Credentials': "'true'",
+        },
+      }],
+      passthroughBehavior: apigateway.PassthroughBehavior.WHEN_NO_MATCH,
+    }), {
+      methodResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Origin': true,
+          'method.response.header.Access-Control-Allow-Credentials': true,
+        }
+      }]
+    });
+    emailResource.defaultCorsPreflightOptions
+
+    const apiUrl = api.url
 
     // 🔐 Store GitHub token in Secrets Manager
     const githubTokenSecret = new secretsmanager.Secret(this, "GitHubToken", {
@@ -61,7 +306,7 @@ export class CdkStack extends cdk.Stack {
 
     complaintsPortalApp.addBranch("main");
 
-    complaintsPortalApp.addEnvironment("VITE_API_URL", props.viteApiUrl);
+    complaintsPortalApp.addEnvironment("VITE_API_URL", apiUrl);
     complaintsPortalApp.addEnvironment("VITE_ENABLE_AUTH", props.viteEnableAuth);
 
     // 🚀 Amplify App 2: Complaints Form (NO Auth)
@@ -100,109 +345,7 @@ export class CdkStack extends cdk.Stack {
 
     complaintsFormApp.addBranch("main");
 
-    complaintsFormApp.addEnvironment("VITE_API_URL", props.viteApiUrl);
-
-
-    // add api gateway, dynamodb, ses and 4 lambda functions: Add/update complaint, Query db, email invocation and heatmap api
-    const complaintTable = new dynamodb.Table(this, 'ComplaintTable', {
-      partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING }
-    });
-    const complaintTableArn = complaintTable.tableArn;
-
-    const DBManagementLambda = new lambda.Function(this, 'DBManagementLambda', {
-      runtime: lambda.Runtime.PYTHON_3_13,
-      handler: 'dbManagementFn.lambda_handler',
-      code: lambda.Code.fromAsset('../lambda'),
-      environment: {
-        COMPLAINT_TABLE_NAME: complaintTable.tableName
-      }
-    });
-    const dbQueryLambda = new lambda.Function(this, 'dbQueryLambda', {
-      runtime: lambda.Runtime.PYTHON_3_13,
-      handler: 'dbQueryFn.lambda_handler',
-      code: lambda.Code.fromAsset('../lambda'),
-      environment: {
-        COMPLAINT_TABLE_NAME: complaintTable.tableName
-      }
-    });
-    const emailHandlerLambda = new lambda.Function(this, 'EmailHandlerLambda', {
-      runtime: lambda.Runtime.PYTHON_3_13,
-      handler: 'emailHandlerFn.lambda_handler',
-      code: lambda.Code.fromAsset('../lambda'),
-      environment: {
-        COMPLAINT_TABLE_NAME: complaintTable.tableName
-      }
-    });
-    const heatmapLambda = new lambda.Function(this, 'HeatmapLambda', {
-      runtime: lambda.Runtime.PYTHON_3_13,
-      handler: 'initialHeatmapQueryFn.lambda_handler',
-      code: lambda.Code.fromAsset('../lambda'),
-      environment: {
-        COMPLAINT_TABLE_NAME: complaintTable.tableName
-      }
-    });
-
-    const beatRetrievalLayer = new lambda.LayerVersion(this, 'BeatRetrievalLayer', {
-      code: lambda.Code.fromAsset('../lambda/layers/beat_retrieval_layer'),
-      compatibleRuntimes: [lambda.Runtime.PYTHON_3_13],
-      description: 'Layer for beat retrieval dependencies',
-    });
-
-    const beatRetrievalLambda = new lambda.Function(this, 'beatRetrievalLambda', {
-      runtime: lambda.Runtime.PYTHON_3_13,
-      handler: 'beatRetrievalFn.lambda_handler',
-      code: lambda.Code.fromAsset('../lambda'),
-      environment: {
-        COMPLAINT_TABLE_NAME: complaintTable.tableName
-      },
-      layers: [beatRetrievalLayer]
-    })
-    complaintTable.grantReadWriteData(DBManagementLambda);
-    complaintTable.grantReadWriteData(dbQueryLambda);
-    complaintTable.grantReadWriteData(heatmapLambda);
-    complaintTable.grantReadWriteData(beatRetrievalLambda);
-    
-    // Create a new api gateway
-
-
-    const api = new apigateway.RestApi(this, 'ChandlerPDApiGateway', {
-      restApiName: 'chandlerPDAPI',
-      description: 'This is an All purpose Rest API for all backend functionality related to Chandler PD',
-      defaultCorsPreflightOptions: {
-        allowOrigins: apigateway.Cors.ALL_ORIGINS,
-        allowMethods: apigateway.Cors.ALL_METHODS,
-        allowHeaders: apigateway.Cors.DEFAULT_HEADERS,
-      }
-    });
-
-    const rootResource = api.root.addResource('root');
-    rootResource.addMethod('POST', new apigateway.LambdaIntegration(DBManagementLambda));
-    rootResource.addMethod('PUT', new apigateway.LambdaIntegration(DBManagementLambda));
-    // rootResource.addMethod('OPTIONS', new apigateway.LambdaIntegration(DBManagementLambda));
-    rootResource.defaultCorsPreflightOptions
-    // rootResource.addCorsPreflight({
-    //   allowHeaders: ['Content-Type', 'X-Amz-Date', 'Authorization', 'X-Api-Key'],
-    //   allowMethods: ['OPTIONS', 'POST', 'PUT'],
-    //   allowCredentials: true,
-    //   allowOrigins: ['*'],
-    // });
-
-    const beatOpenCaseResource = rootResource.addResource('beat-open-cases');
-    beatOpenCaseResource.addMethod('GET', new apigateway.LambdaIntegration(heatmapLambda));
-    beatOpenCaseResource.defaultCorsPreflightOptions
-
-    // const chatbotResource = rootResource.addResource('/chatBot');
-    // chatbotResource.addMethod('POST', new apigateway.LambdaIntegration(beatRetrievalLambda));
-    // chatbotResource.defaultCorsPreflightOptions
-
-    const dbQueryResource = rootResource.addResource('db-filter-query-api')
-    dbQueryResource.addMethod('POST', new apigateway.LambdaIntegration(dbQueryLambda));
-    dbQueryResource.addMethod('PUT', new apigateway.LambdaIntegration(dbQueryLambda));
-    dbQueryResource.defaultCorsPreflightOptions
-
-    const emailResource = rootResource.addResource('send-email')
-    emailResource.addMethod('POST', new apigateway.LambdaIntegration(emailHandlerLambda));
-    emailResource.defaultCorsPreflightOptions
+    complaintsFormApp.addEnvironment("VITE_API_URL", apiUrl);
 
     const emailIdentity = ses.Identity.email('mmaddur1@asu.edu');
     new ses.EmailIdentity(this, "EmailIdentity", {

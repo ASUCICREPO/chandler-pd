@@ -5,7 +5,7 @@ import os
 
 dynamodb = boto3.resource('dynamodb')
 
-table = os.environ['COMPLAINT_TABLE_NAME']
+table = dynamodb.Table(os.environ['COMPLAINT_TABLE_NAME'])
 
 def lambda_handler(event, context):
     # TODO take table value from env variable

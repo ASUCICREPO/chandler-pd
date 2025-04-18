@@ -13,6 +13,7 @@ dynamodb = boto3.resource('dynamodb')
 lambda_client = boto3.client('lambda')
 
 COMPLAINTS_TABLE = os.environ['COMPLAINT_TABLE_NAME']
+LAMBDA_API_FN = os.environ['LAMBDA_FN_NAME']
 
 # BeatRetrieval
 def invoke_lambda(function_name, payload):
@@ -114,7 +115,7 @@ def add_item_to_table(event):
                 location_data += event.get(i, '') + ' '
 
         # Call another lambda function
-        beat_data = invoke_lambda('BeatRetrieval', json.dumps({"location_data": location_data}))
+        beat_data = invoke_lambda(LAMBDA_API_FN, json.dumps({"location_data": location_data}))
         parsed = json.loads(beat_data)
         print(parsed)
         
