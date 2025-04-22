@@ -7,6 +7,8 @@ import * as ses from 'aws-cdk-lib/aws-ses';
 import * as amplify from "@aws-cdk/aws-amplify-alpha";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as LexBot from 'cdk-lex-zip-import'
+import { EmailEncoding } from 'aws-cdk-lib/aws-ses-actions';
 
 interface CdkStackProps extends cdk.StackProps {
   githubToken: string;
@@ -15,15 +17,22 @@ interface CdkStackProps extends cdk.StackProps {
 }
 
 export class CdkStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props: CdkStackProps) {
+  constructor(scope: Construct, id: string, props?: CdkStackProps) {
     super(scope, id, props);
 
-    // add api gateway, dynamodb, ses and 4 lambda functions: Add/update complaint, Query db, email invocation and heatmap api
+    // add api gateway, dynamodb, ses and 4 lambda functions: Add/update complaint, Query db, email invocation, chatbot open, chatbot process and heatmap api
     const complaintTable = new dynamodb.Table(this, 'ComplaintTable', {
       partitionKey: { name: 'complaintId', type: dynamodb.AttributeType.STRING },
       removalPolicy: cdk.RemovalPolicy.DESTROY
     });
     const complaintTableArn = complaintTable.tableArn;
+
+    // Create the lambda layer for time zone conversions
+    const lexBackendLayer = new lambda.LayerVersion(this, 'LexBackendLayer', {
+      code: lambda.Code.fromAsset('../lambda/layers/lex_backend_layer'),
+      compatibleRuntimes: [lambda.Runtime.PYTHON_3_13],
+      description: 'Layer for Lex backend dependencies',
+    });
 
     const beatRetrievalLayer = new lambda.LayerVersion(this, 'BeatRetrievalLayer', {
       code: lambda.Code.fromAsset('../lambda/layers/beat_retrieval_layer'),
@@ -99,6 +108,75 @@ export class CdkStack extends cdk.Stack {
         COMPLAINT_TABLE_NAME: complaintTable.tableName
       }
     });
+
+      // Create IAM role for Lex
+      const lexRole = new iam.Role(this, 'LexRole', {
+        assumedBy: new iam.ServicePrincipal('lex.amazonaws.com'),
+        description: 'IAM Role for Lex to use Polly SynthesizeSpeech',
+      });
+  
+      // Attach the Polly policy to the role
+      lexRole.addToPolicy(new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: ['polly:SynthesizeSpeech'],
+        resources: ['*'],
+      }));
+  
+      // Create the Lex Bot language
+      const lexBot = new LexBot.ImportBot(this, "LexBottest", {
+        lexRoleArn: lexRole.roleArn,
+        sourceDirectory: "./LexBot"
+      });
+
+      //NOTE: You need to add the following line to the lexbot.ts file for this to work, solves a dependancy issue
+      // node_modules/cdk-lex-zip-import/lib/lexbot.js, after the custom resource, but before the botId
+
+      // // Add explicit dependency to ensure the bucket deployment completes first
+      // lexBotImport.node.addDependency(upload);
+
+      // Create the lambda function that opens the chatbot connection
+      const chatbotConnectorLambda = new lambda.Function(this, 'ChatbotConnectorLambda', {
+        runtime: lambda.Runtime.PYTHON_3_13,
+        handler: 'chatbotConnectorFn.lambda_handler',
+        code: lambda.Code.fromAsset('../lambda'),
+        timeout: cdk.Duration.seconds(60),
+        role: new iam.Role(this, 'ChatbotConnectorLambdaRole', {
+          assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
+          managedPolicies: [
+            iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole'),
+            iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonLexFullAccess'),
+          ],
+        }),
+        environment: {
+          LEXBOT_ID: lexBot.botId,
+          // LEXBOT_ALIAS_ID: lexBot.botAliasId,
+        },
+      });
+
+      // Create the Lambda function that processes chatbot actions in the backend
+      const chatbotBackendLambda = new lambda.Function(this, 'ChatbotBackendLambda', {
+        runtime: lambda.Runtime.PYTHON_3_13,
+        handler: 'lambda_function.lambda_handler',
+        code: lambda.Code.fromAsset('../lambda/LexBackendFn'),
+        timeout: cdk.Duration.seconds(60),
+        role: new iam.Role(this, 'ChatbotBackendLambdaRole', {
+          assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
+          managedPolicies: [
+            iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole'),
+            iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonLexFullAccess'),
+            iam.ManagedPolicy.fromAwsManagedPolicyName('AWSLambda_FullAccess'),
+          ],
+        }),
+        environment: {
+          LEXBOT_ID: lexBot.botId,
+          // LEXBOT_ALIAS_ID: lexBot.botAliasId,
+          COMPLAINT_TABLE_NAME: complaintTable.tableName,
+          DB_QUERY_LAMBDA_NAME: dbQueryLambda.functionName,
+          EMAIL_LAMBDA_NAME: emailHandlerLambda.functionName,
+        },
+        layers: [lexBackendLayer],
+      });
+
 
     complaintTable.grantReadWriteData(DBManagementLambda);
     complaintTable.grantReadWriteData(dbQueryLambda);
@@ -194,9 +272,29 @@ export class CdkStack extends cdk.Stack {
     });
     beatOpenCaseResource.defaultCorsPreflightOptions
 
-    // const chatbotResource = rootResource.addResource('/chatBot');
-    // chatbotResource.addMethod('POST', new apigateway.LambdaIntegration(beatRetrievalLambda));
-    // chatbotResource.defaultCorsPreflightOptions
+
+    // Add the chatbot connector resource
+    const chatbotResource = rootResource.addResource('chatBot');
+    chatbotResource.addMethod('POST', new apigateway.LambdaIntegration(chatbotConnectorLambda, {
+      proxy: false,
+      integrationResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Origin': "'*'",
+          'method.response.header.Access-Control-Allow-Credentials': "'true'",
+        },
+      }],
+      passthroughBehavior: apigateway.PassthroughBehavior.WHEN_NO_MATCH,
+    }), {
+      methodResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Origin': true,
+          'method.response.header.Access-Control-Allow-Credentials': true,
+        }
+      }]
+    });
+    chatbotResource.defaultCorsPreflightOptions
 
     const dbQueryResource = rootResource.addResource('db-filter-query-api')
     dbQueryResource.addMethod('POST', new apigateway.LambdaIntegration(dbQueryLambda, {
