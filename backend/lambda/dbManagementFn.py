@@ -6,7 +6,6 @@ from botocore.exceptions import ClientError
 from datetime import datetime, timezone, timedelta
 import uuid
 from boto3.dynamodb.conditions import Attr
-from decimal import Decimal
 import os
 
 dynamodb = boto3.resource('dynamodb')
