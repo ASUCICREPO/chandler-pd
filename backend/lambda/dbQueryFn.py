@@ -1,9 +1,7 @@
 import boto3
 from boto3.dynamodb.conditions import Attr
-import uuid
 import math as m
 import datetime
-import json
 from datetime import datetime, timedelta, timezone
 import os
 
