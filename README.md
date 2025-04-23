@@ -1,6 +1,6 @@
 This is the primary codebase for Chandler PD
 
-# Chandler Police Department Chatbot Repository
+# Chandler Police Department Dashboard Repository
 
 Welcome to the **Chandler Police Department Dashboard** repository! This guide will walk you through the process of setting up and deploying the project using AWS CDK.
 
