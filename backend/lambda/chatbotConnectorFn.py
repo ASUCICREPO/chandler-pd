@@ -21,7 +21,7 @@ def lambda_handler(event, context):
         "botAliasId": botAliasId,
         "localeId": localeId,
         "sessionId": event["sessionId"],
-        "text": event["message"]
+        "text": event["text"]
     }
     response = client.recognize_text(**args)
 

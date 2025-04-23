@@ -17,7 +17,7 @@ interface CdkStackProps extends cdk.StackProps {
 }
 
 export class CdkStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: CdkStackProps) {
+  constructor(scope: Construct, id: string, props: CdkStackProps) {
     super(scope, id, props);
 
     // add api gateway, dynamodb, ses and 4 lambda functions: Add/update complaint, Query db, email invocation, chatbot open, chatbot process and heatmap api
@@ -123,7 +123,7 @@ export class CdkStack extends cdk.Stack {
       }));
   
       // Create the Lex Bot language
-      const lexBot = new LexBot.ImportBot(this, "LexBottest", {
+      const lexBot = new LexBot.ImportBot(this, "LexBot", {
         lexRoleArn: lexRole.roleArn,
         sourceDirectory: "./LexBot"
       });
@@ -167,6 +167,7 @@ export class CdkStack extends cdk.Stack {
             iam.ManagedPolicy.fromAwsManagedPolicyName('AWSLambda_FullAccess'),
           ],
         }),
+        
         environment: {
           LEXBOT_ID: lexBot.botId,
           // LEXBOT_ALIAS_ID: lexBot.botAliasId,
@@ -175,6 +176,17 @@ export class CdkStack extends cdk.Stack {
           EMAIL_LAMBDA_NAME: emailHandlerLambda.functionName,
         },
         layers: [lexBackendLayer],
+      });
+
+      // Define the Lex bot ARN pattern that allows any alias
+      // Format: arn:aws:lex:{region}:{account}:bot-alias/{botId}/*
+      const lexBotAnyAliasArn = `arn:aws:lex:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:bot-alias/${lexBot.botId}/*`;
+
+      // Add the resource-based policy to allow any alias of the specified Lex bot to invoke this Lambda
+      chatbotBackendLambda.addPermission('LexInvokePermission', {
+        principal: new iam.ServicePrincipal('lexv2.amazonaws.com'),
+        action: 'lambda:InvokeFunction',
+        sourceArn: lexBotAnyAliasArn,
       });
 
 
