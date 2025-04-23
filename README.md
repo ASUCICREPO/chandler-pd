@@ -91,5 +91,5 @@ cdk deploy -c githubToken=$stored-github-token githubOwner=$github-owner-of-repo
 
 # 🎉 Congratulations!!
 
-Your **Chandler ** has been successfully deployed! You can now explore your chatbot and start using it for breast cancer awareness and support.
+Your **Chandler PD Dashboard** has been successfully deployed! You can now explore your chatbot and start using it for breast cancer awareness and support.
 
