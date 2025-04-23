@@ -1,6 +1,7 @@
 This is the primary codebase for Chandler PD
 
-# Chandler Police Department Dashboard Repository
+# 👮Chandler Police Department Dashboard Repository 🚔
+
 
 Welcome to the **Chandler Police Department Dashboard** repository! This guide will walk you through the process of setting up and deploying the project using **CloudFormation Template** and **AWS CDK**.
 
@@ -61,6 +62,7 @@ git clone <your-forked-repo-link>
       - **viteEnableAuth** - Choose the DISABLED value
    - Choose Next until you reach the "Review and Create" page
    - Choose Submit
+
 **This will start the Stack Creation**
 
 ### Deployment using AWS CDK
@@ -102,6 +104,7 @@ cdk deploy -c githubToken=$stored-github-token githubOwner=$github-owner-of-repo
    - After configuring the GitHub App, return to the Amplify console.
    - Select your app, and click **Run Job** to trigger the deployment pipeline.
    - The job will build and deploy your chatbot automatically.
+   
 **Note:** Repeat the above steps for remaining app as well
 
 5. **🌐 Access Your Deployed Dashboard**
@@ -112,5 +115,5 @@ cdk deploy -c githubToken=$stored-github-token githubOwner=$github-owner-of-repo
 
 # 🎉 Congratulations!!
 
-Your **Chandler PD Dashboard** has been successfully deployed! You can now explore your chatbot and start using it for breast cancer awareness and support.
+Your **Chandler PD Dashboard** has been successfully deployed! You can now explore your dashboard and start using it to enhance road safety initiatives throughout Chandler!!
 
