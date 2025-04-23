@@ -7,7 +7,8 @@ import * as ses from 'aws-cdk-lib/aws-ses';
 import * as amplify from "@aws-cdk/aws-amplify-alpha";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import * as iam from 'aws-cdk-lib/aws-iam';
-import * as LexBot from 'cdk-lex-zip-import'
+import * as LexBot from 'cdk-lex-zip-import';
+import * as cr from 'aws-cdk-lib/custom-resources';
 import { EmailEncoding } from 'aws-cdk-lib/aws-ses-actions';
 
 interface CdkStackProps extends cdk.StackProps {
@@ -149,7 +150,6 @@ export class CdkStack extends cdk.Stack {
         }),
         environment: {
           LEXBOT_ID: lexBot.botId,
-          // LEXBOT_ALIAS_ID: lexBot.botAliasId,
         },
       });
 
@@ -170,7 +170,6 @@ export class CdkStack extends cdk.Stack {
         
         environment: {
           LEXBOT_ID: lexBot.botId,
-          // LEXBOT_ALIAS_ID: lexBot.botAliasId,
           COMPLAINT_TABLE_NAME: complaintTable.tableName,
           DB_QUERY_LAMBDA_NAME: dbQueryLambda.functionName,
           EMAIL_LAMBDA_NAME: emailHandlerLambda.functionName,
@@ -188,6 +187,43 @@ export class CdkStack extends cdk.Stack {
         action: 'lambda:InvokeFunction',
         sourceArn: lexBotAnyAliasArn,
       });
+
+
+      // Create a custom resource to create the version and alias for the Lex bot, and set the alias ID for the lambdas
+
+      const customResourceLambda = new lambda.Function(this, 'LexBotVersionAliasLambda', {
+        runtime: lambda.Runtime.PYTHON_3_13,
+        handler: 'LexBotVersionAliasFn.lambda_handler',
+        code: lambda.Code.fromAsset('../lambda'),
+        timeout: cdk.Duration.minutes(15),
+        role: new iam.Role(this, 'LexBotVersionAliasLambdaRole', {
+          assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
+          managedPolicies: [
+            iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole'),
+            iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonLexFullAccess'),
+            iam.ManagedPolicy.fromAwsManagedPolicyName('AWSLambda_FullAccess'),
+          ],
+        }),
+        environment: {
+          LEXBOT_ID: lexBot.botId,
+          LEXBOT_LAMBDA_ARN_BACKEND: chatbotBackendLambda.functionArn,
+          LEXBOT_LAMBDA_ARN_CONNECTOR: chatbotConnectorLambda.functionArn,
+        },
+      });
+
+      const provider = new cr.Provider(this, 'LexBotVersionAliasProvider', {
+        onEventHandler: customResourceLambda,
+      });
+
+      const customResource = new cdk.CustomResource(this, 'LexBotVersionAlias', {
+        serviceToken: provider.serviceToken,
+        properties: {
+          LexBotId: lexBot.botId,
+        }
+      });
+      customResource.node.addDependency(chatbotBackendLambda);
+      customResource.node.addDependency(chatbotConnectorLambda);
+      customResource.node.addDependency(lexBot);
 
 
     complaintTable.grantReadWriteData(DBManagementLambda);
