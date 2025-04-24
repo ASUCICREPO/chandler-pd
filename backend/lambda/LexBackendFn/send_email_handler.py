@@ -131,57 +131,103 @@ def handle(event):
         logger.info(f"Invoking emailHandlerLambdaFn with sendTo: {email_address}")
         response_payload = invoke_lambda(config.email_lambda_name, email_payload_json)
         
-        # Parse the response if needed
+        # Parse the response to handle different error cases
         logger.info(f"Email Lambda response: {response_payload}")
+        email_response = json.loads(response_payload)
         
-        # Create success response with complaint information
-        complaint_count_message = f"I've sent {total_complaints} complaint"
-        if total_complaints != 1:
-            complaint_count_message += "s"
-            
-        # Add filter information to the message if filters were applied
-        filter_info = ""
-        if applied_filters.get("beatNums"):
-            beat_str = ", ".join(applied_filters["beatNums"])
-            filter_info += f" from beat{'' if len(applied_filters['beatNums']) == 1 else 's'} {beat_str}"
+        # Check the status code from the email lambda
+        status_code = email_response.get('statusCode', 500)
+        response_message = email_response.get('message', 'An unknown error occurred')
         
-        if applied_filters.get("categories"):
-            category_str = ", ".join(applied_filters["categories"])
-            filter_info += f" with category {category_str}"
+        # Handle different response cases
+        if status_code == 200:
+            # Email was sent successfully or verification email was sent
+            if "Email is not verified" in response_message:
+                # The email needs verification
+                content_message = f"I've sent a verification email to {email_address}. Please check your inbox and verify your email before I can send the complaints."
+            else:
+                # Construct the success message with filter information
+                filter_info = ""
+                if applied_filters.get("beatNums"):
+                    beat_str = ", ".join(applied_filters["beatNums"])
+                    filter_info += f" from beat{'' if len(applied_filters['beatNums']) == 1 else 's'} {beat_str}"
+                
+                if applied_filters.get("categories"):
+                    category_str = ", ".join(applied_filters["categories"])
+                    filter_info += f" with category {category_str}"
+                    
+                if applied_filters.get("statuses"):
+                    status_str = ", ".join(applied_filters["statuses"])
+                    filter_info += f" having status {status_str}"
+                    
+                if applied_filters.get("daysOfWeek"):
+                    days_str = ", ".join(applied_filters["daysOfWeek"])
+                    filter_info += f" occurring on {days_str}"
+                    
+                # Add date range information if applicable
+                if date_range[0] and date_range[1]:
+                    filter_info += f" between {date_range[0]} and {date_range[1]}"
+                
+                # Construct the complete message
+                content_message = f"I've sent {total_complaints} complaint{'' if total_complaints == 1 else 's'}{filter_info} to {email_address}. Please check your inbox shortly."
             
-        if applied_filters.get("statuses"):
-            status_str = ", ".join(applied_filters["statuses"])
-            filter_info += f" having status {status_str}"
-            
-        if applied_filters.get("daysOfWeek"):
-            days_str = ", ".join(applied_filters["daysOfWeek"])
-            filter_info += f" occurring on {days_str}"
-            
-        # Add date range information if applicable
-        if date_range[0] and date_range[1]:
-            filter_info += f" between {date_range[0]} and {date_range[1]}"
-        
-        # Construct the complete message
-        content_message = f"I've sent complaint{filter_info} to {email_address}. Please check your inbox shortly."
-        
-        # Return success response
-        return {
-            "sessionState": {
-                "dialogAction": {
-                    "type": "Close"
+            # Return success response with appropriate message
+            return {
+                "sessionState": {
+                    "dialogAction": {
+                        "type": "Close"
+                    },
+                    "intent": {
+                        "name": intent_name,
+                        "state": "Fulfilled"
+                    }
                 },
-                "intent": {
-                    "name": intent_name,
-                    "state": "Fulfilled"
-                }
-            },
-            "messages": [
-                {
-                    "contentType": "PlainText",
-                    "content": content_message
-                }
-            ]
-        }
+                "messages": [
+                    {
+                        "contentType": "PlainText",
+                        "content": content_message
+                    }
+                ]
+            }
+        elif status_code == 400 and "Invalid Email" in response_message:
+            # The email format is invalid or not from an allowed domain
+            return {
+                "sessionState": {
+                    "dialogAction": {
+                        "type": "Close"
+                    },
+                    "intent": {
+                        "name": intent_name,
+                        "state": "Failed"
+                    }
+                },
+                "messages": [
+                    {
+                        "contentType": "PlainText",
+                        "content": f"I couldn't send the email to {email_address}. Only emails from chandleraz.gov or chandlerazpd.gov domains are allowed."
+                    }
+                ]
+            }
+        else:
+            # Handle other error cases
+            logger.error(f"Email sending failed with status {status_code}: {response_message}")
+            return {
+                "sessionState": {
+                    "dialogAction": {
+                        "type": "Close"
+                    },
+                    "intent": {
+                        "name": intent_name,
+                        "state": "Failed"
+                    }
+                },
+                "messages": [
+                    {
+                        "contentType": "PlainText",
+                        "content": f"I encountered an error while trying to send the email: {response_message}. Please try again later."
+                    }
+                ]
+            }
         
     except Exception as e:
         logger.error(f"Error sending email: {str(e)}")
@@ -200,7 +246,7 @@ def handle(event):
             "messages": [
                 {
                     "contentType": "PlainText",
-                    "content": f"I encountered an errThe intent 'FallbackIntent' is not yet implemented.or while trying to send the email. Please try again later."
+                    "content": f"I encountered an error while trying to send the email. Please try again later."
                 }
             ]
         }
