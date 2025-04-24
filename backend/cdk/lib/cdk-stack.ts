@@ -487,11 +487,7 @@ export class CdkStack extends cdk.Stack {
     });
 
     complaintsPortalApp.addBranch("main");
-    complaintsPortalApp.addCustomRule({
-      source: "/<*>", // Catch-all route
-      target: "/index.html", // Let React handle routing
-      status: amplify.RedirectStatus.REWRITE,
-    });
+
     complaintsPortalApp.addEnvironment("VITE_API_URL", apiUrl);
     complaintsPortalApp.addEnvironment("VITE_ENABLE_AUTH", props.viteEnableAuth);
 
