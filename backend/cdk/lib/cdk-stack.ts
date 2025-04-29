@@ -14,7 +14,12 @@ import { EmailEncoding } from "aws-cdk-lib/aws-ses-actions";
 interface CdkStackProps extends cdk.StackProps {
   githubToken: string;
   githubOwner: string;
-  viteEnableAuth: string;
+  clientId: string;
+  clientSecret: string;
+  // redirectUri: string;
+  authEndPoint: string;
+  tokenEndPoint: string;
+  tokenLogout: string;
 }
 
 export class CdkStack extends cdk.Stack {
@@ -486,11 +491,17 @@ export class CdkStack extends cdk.Stack {
       }),
     });
 
-    complaintsPortalApp.addBranch("main");
+    const complaintsPortalBranch = complaintsPortalApp.addBranch("main");
 
-    complaintsPortalApp.addEnvironment("VITE_API_URL", apiUrl);
-    complaintsPortalApp.addEnvironment("VITE_ENABLE_AUTH", props.viteEnableAuth);
+    const complaintsPortalUrl = `https://${complaintsPortalBranch.branchName}.${complaintsPortalApp.defaultDomain}`; // <-- get generated Amplify domain
 
+    complaintsPortalBranch.addEnvironment("VITE_API_URL", apiUrl);
+    complaintsPortalBranch.addEnvironment("VITE_CLIENT_ID", props.clientId);
+    complaintsPortalBranch.addEnvironment("VITE_CLIENT_SECRET", props.clientSecret);
+    complaintsPortalBranch.addEnvironment("VITE_REDIRECT_URI", complaintsPortalUrl); // ✅ set auto redirect
+    complaintsPortalBranch.addEnvironment("VITE_AUTH_ENDPOINT", props.authEndPoint);
+    complaintsPortalBranch.addEnvironment("VITE_TOKEN_ENDPOINT", props.tokenEndPoint);
+    complaintsPortalBranch.addEnvironment("VITE_TOKEN_LOGOUT", props.tokenLogout);
     // 🚀 Amplify App 2: Complaints Form (NO Auth)
     const complaintsFormApp = new amplify.App(this, "ComplaintsForm", {
       sourceCodeProvider: new amplify.GitHubSourceCodeProvider({

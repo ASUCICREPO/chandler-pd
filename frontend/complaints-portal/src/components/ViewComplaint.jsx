@@ -63,7 +63,8 @@ export const handleFieldChange = async (complaintId, field, value, updateComplai
 
 const ViewComplaint = ({ complaint, setSelectedComplaint, setOpenDetailsDialog, openDetailsDialog }) => {
   if (!complaint) return;
-  const { updateComplaint } = useStore();
+
+  const { updateComplaint, isAdmin } = useStore();
   const [notes, setNotes] = useState(complaint.officersNotes || "");
 
   // Update local state when complaint changes or dialog opens
@@ -82,7 +83,7 @@ const ViewComplaint = ({ complaint, setSelectedComplaint, setOpenDetailsDialog, 
       }}
       sx={{
         "& .MuiDialog-paper": {
-          height: "100vh", // Adjust the height of the dialog
+          height: "fit-content", // Adjust the height of the dialog
           minWidth: "50vw",
         },
       }}
@@ -106,53 +107,59 @@ const ViewComplaint = ({ complaint, setSelectedComplaint, setOpenDetailsDialog, 
             Complaint Details
           </Typography>
           <Box sx={{ display: "flex", alignItems: "center", mr: 3 }}>
-            <Autocomplete
-              value={complaint.beatNumber}
-              onChange={(e, val) => {
-                handleFieldChange(complaint.complaintId, "beatNumber", val, updateComplaint, function () {
-                  setSelectedComplaint((prevState) => ({
-                    ...prevState,
-                    beatNumber: val, // Ensure the updated field is set
-                  }));
-                }); // pass the field and the selected value
-              }}
-              options={beatsList}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Beat Number"
-                  variant="outlined"
-                  sx={{
-                    "& .MuiInputLabel-root": {
-                      color: (theme) => theme.palette.getContrastText(theme.palette.primary.main), // Label text color
-                    },
-                    "& .MuiOutlinedInput-root": {
-                      height: "36.5px",
-                      "& fieldset": {
-                        borderColor: (theme) => theme.palette.getContrastText(theme.palette.primary.main), // Border color
+            {isAdmin ? (
+              <Autocomplete
+                value={complaint.beatNumber}
+                onChange={(e, val) => {
+                  if (!isAdmin) return;
+                  handleFieldChange(complaint.complaintId, "beatNumber", val, updateComplaint, function () {
+                    setSelectedComplaint((prevState) => ({
+                      ...prevState,
+                      beatNumber: val, // Ensure the updated field is set
+                    }));
+                  }); // pass the field and the selected value
+                }}
+                options={beatsList}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Beat Number"
+                    variant="outlined"
+                    sx={{
+                      "& .MuiInputLabel-root": {
+                        color: (theme) => theme.palette.getContrastText(theme.palette.primary.main), // Label text color
                       },
-                      "&:hover fieldset": {
-                        borderColor: (theme) => theme.palette.getContrastText(theme.palette.primary.main), // Border color on hover
+                      "& .MuiOutlinedInput-root": {
+                        height: "36.5px",
+                        "& fieldset": {
+                          borderColor: (theme) => theme.palette.getContrastText(theme.palette.primary.main), // Border color
+                        },
+                        "&:hover fieldset": {
+                          borderColor: (theme) => theme.palette.getContrastText(theme.palette.primary.main), // Border color on hover
+                        },
+                        "&.Mui-focused fieldset": {
+                          borderColor: (theme) => theme.palette.getContrastText(theme.palette.primary.main), // Focused border color
+                        },
                       },
-                      "&.Mui-focused fieldset": {
-                        borderColor: (theme) => theme.palette.getContrastText(theme.palette.primary.main), // Focused border color
+                      "& .MuiAutocomplete-input": {
+                        color: (theme) => theme.palette.getContrastText(theme.palette.primary.main), // Focused border color
                       },
-                    },
-                    "& .MuiAutocomplete-input": {
-                      color: (theme) => theme.palette.getContrastText(theme.palette.primary.main), // Focused border color
-                    },
-                    "& .MuiSvgIcon-root": {
-                      fill: (theme) => theme.palette.getContrastText(theme.palette.primary.main), // Icon color
-                    },
-                  }}
-                />
-              )}
-            />{" "}
+                      "& .MuiSvgIcon-root": {
+                        fill: (theme) => theme.palette.getContrastText(theme.palette.primary.main), // Icon color
+                      },
+                    }}
+                  />
+                )}
+              />
+            ) : (
+              <Typography sx={{ fontWeight: "bold" }}>Beat: {complaint.beatNumber}</Typography>
+            )}
           </Box>
           <StatusComponent
             value={complaint.complaintStatus}
             id={complaint.complaintId}
             onChange={(status) => {
+              if (!isAdmin) return;
               handleFieldChange(complaint.complaintId, "complaintStatus", status, updateComplaint, function () {
                 setSelectedComplaint((prevState) => ({
                   ...prevState,
@@ -267,7 +274,15 @@ const ViewComplaint = ({ complaint, setSelectedComplaint, setOpenDetailsDialog, 
           <Typography variant="body2" sx={{ color: "#aaa", mb: 1 }}>
             Notes
           </Typography>
-          <TextField placeholder="Enter your notes here..." fullWidth multiline rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          {isAdmin ? (
+            <TextField placeholder="Enter your notes here..." fullWidth multiline rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          ) : (
+            <>
+              <Typography variant="body2" color={notes ? "text.primary" : "text.secondary"} fontStyle={notes ? "normal" : "italic"}>
+                {notes || "No notes added."}
+              </Typography>{" "}
+            </>
+          )}
         </Box>
       </Box>
 
@@ -282,26 +297,29 @@ const ViewComplaint = ({ complaint, setSelectedComplaint, setOpenDetailsDialog, 
           zIndex: 2,
         }}
       >
-        <Button sx={{ mr: 2 }} variant="text" onClick={() => setOpenDetailsDialog(false)}>
-          Cancel
+        <Button sx={{ mr: 2 }} variant={isAdmin ? "text" : "contained"} onClick={() => setOpenDetailsDialog(false)}>
+          Close
         </Button>
-        <Button
-          disabled={complaint.officersNotes === notes}
-          variant="contained"
-          onClick={(e) => {
-            if (complaint.officersNotes !== notes) {
-              handleFieldChange(complaint.complaintId, "officersNotes", notes, updateComplaint, function () {
-                setSelectedComplaint((prevState) => ({
-                  ...prevState,
-                  officersNotes: notes,
-                }));
-                setOpenDetailsDialog(false);
-              });
-            }
-          }}
-        >
-          Save
-        </Button>
+        {isAdmin && (
+          <Button
+            disabled={complaint.officersNotes === notes}
+            variant="contained"
+            onClick={(e) => {
+              if (!isAdmin) return;
+              if (complaint.officersNotes !== notes) {
+                handleFieldChange(complaint.complaintId, "officersNotes", notes, updateComplaint, function () {
+                  setSelectedComplaint((prevState) => ({
+                    ...prevState,
+                    officersNotes: notes,
+                  }));
+                  setOpenDetailsDialog(false);
+                });
+              }
+            }}
+          >
+            Save
+          </Button>
+        )}
       </Box>
     </Dialog>
   );

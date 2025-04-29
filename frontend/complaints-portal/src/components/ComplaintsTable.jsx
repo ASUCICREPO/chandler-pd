@@ -17,7 +17,7 @@ const statusColors = {
 const ComplaintsTable = () => {
   const [openDetailsDialog, setOpenDetailsDialog] = useState(false); // State to control popup
 
-  const { complaints, loading, updateComplaint, selectedRows, setSelectedRows, totalComplaints } = useStore();
+  const { complaints, loading, isAdmin, updateComplaint, selectedRows, setSelectedRows, totalComplaints } = useStore();
 
   const [anchorEl, setAnchorEl] = useState(null);
   const [status, setStatus] = useState("");
@@ -96,7 +96,16 @@ const ComplaintsTable = () => {
       headerName: "Status",
       minWidth: 200,
       flex: 1,
-      renderCell: (params) => <StatusComponent value={params.row.complaintStatus} id={params.row.complaintId} onChange={(status) => handleFieldChange(params.row.complaintId, "complaintStatus", status, updateComplaint)} />,
+      renderCell: (params) => (
+        <StatusComponent
+          value={params.row.complaintStatus}
+          id={params.row.complaintId}
+          onChange={(status) => {
+            if (!isAdmin) return;
+            handleFieldChange(params.row.complaintId, "complaintStatus", status, updateComplaint);
+          }}
+        />
+      ),
     },
     {
       field: "location",

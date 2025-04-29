@@ -4,7 +4,6 @@ import { DatePicker, DateTimePicker, LocalizationProvider, TimePicker } from "@m
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import EmailIcon from "@mui/icons-material/Email";
 import dayjs from "dayjs";
-import { dummyRows } from "./ComplaintsTableHelper";
 import useStore from "../store/store";
 import { useLocation, useNavigate } from "react-router-dom";
 import { beatsList } from "../beatsData/beats";
@@ -12,7 +11,8 @@ import SendEmail from "./SendEmail";
 const API_URL = import.meta.env.VITE_API_URL;
 
 const Filters = () => {
-  const { setComplaints, setTotalStatusCounts, selectedRows, refresh, currentPage, setLoading, setPagination } = useStore();
+  const { setComplaints, isAdmin, setTotalStatusCounts, selectedRows, refresh, currentPage, setLoading, setPagination } = useStore();
+
   const resetState = {
     mainFilter: "",
     timeRange: [null, null], // Stores start and end times
@@ -119,7 +119,7 @@ const Filters = () => {
         });
         setPagination(0, 0, 1);
       } else {
-        setComplaints(responseData.complaintsData || dummyRows);
+        setComplaints(responseData.complaintsData || []);
         setPagination(responseData.page - 1, responseData.totalComplaint, responseData.totalPages);
         setTotalStatusCounts(responseData.totalStatusCounts);
       }
@@ -280,11 +280,15 @@ const Filters = () => {
           })}
           <Chip label={"Reset"} onClick={() => handleFilterChange("mainFilter", "")} />
         </Stack>
-        <Button variant="outlined" startIcon={<EmailIcon />} size="small" onClick={showEmailDialog} disabled={selectedRows.length <= 0}>
-          Send Email
-        </Button>
-        {/* Right-aligned SendEmail component */}
-        <SendEmail openEmailDialog={openEmailDialog} setOpenEmailDialog={setOpenEmailDialog} />
+        {isAdmin && (
+          <>
+            <Button variant="outlined" startIcon={<EmailIcon />} size="small" onClick={showEmailDialog} disabled={selectedRows.length <= 0}>
+              Send Email
+            </Button>
+
+            <SendEmail openEmailDialog={openEmailDialog} setOpenEmailDialog={setOpenEmailDialog} />
+          </>
+        )}
       </Stack>
       {filtersState.mainFilter && (
         <Stack direction="row" justifyContent={"space-between"} sx={{ width: "100%" }}>

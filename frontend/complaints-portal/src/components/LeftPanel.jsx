@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import LogoutIcon from "@mui/icons-material/Logout";
 import logo from "../assets/logo.png";
-const ENABLE_AUTH = import.meta.env.VITE_ENABLE_AUTH;
+const ENABLE_AUTH = "ENABLED";
 
 const LeftPanel = ({ signOut }) => {
   const navigate = useNavigate();
