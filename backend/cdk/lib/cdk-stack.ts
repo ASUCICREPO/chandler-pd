@@ -16,7 +16,7 @@ interface CdkStackProps extends cdk.StackProps {
   githubOwner: string;
   clientId: string;
   clientSecret: string;
-  // redirectUri: string;
+  redirectUri: string;
   authEndPoint: string;
   tokenEndPoint: string;
   tokenLogout: string;
@@ -493,12 +493,12 @@ export class CdkStack extends cdk.Stack {
 
     const complaintsPortalBranch = complaintsPortalApp.addBranch("main");
 
-    const complaintsPortalUrl = `https://${complaintsPortalBranch.branchName}.${complaintsPortalApp.defaultDomain}`; // <-- get generated Amplify domain
+    // const complaintsPortalUrl = `https://${complaintsPortalBranch.branchName}.${complaintsPortalApp.defaultDomain}`; // <-- get generated Amplify domain
 
     complaintsPortalBranch.addEnvironment("VITE_API_URL", apiUrl);
     complaintsPortalBranch.addEnvironment("VITE_CLIENT_ID", props.clientId);
     complaintsPortalBranch.addEnvironment("VITE_CLIENT_SECRET", props.clientSecret);
-    complaintsPortalBranch.addEnvironment("VITE_REDIRECT_URI", complaintsPortalUrl); // ✅ set auto redirect
+    complaintsPortalBranch.addEnvironment("VITE_REDIRECT_URI", props.redirectUri); // ✅ set auto redirect
     complaintsPortalBranch.addEnvironment("VITE_AUTH_ENDPOINT", props.authEndPoint);
     complaintsPortalBranch.addEnvironment("VITE_TOKEN_ENDPOINT", props.tokenEndPoint);
     complaintsPortalBranch.addEnvironment("VITE_TOKEN_LOGOUT", props.tokenLogout);
@@ -540,7 +540,7 @@ export class CdkStack extends cdk.Stack {
 
     complaintsFormApp.addEnvironment("VITE_API_URL", apiUrl);
 
-    const emailIdentity = ses.Identity.email("mmaddur1@asu.edu");
+    const emailIdentity = ses.Identity.email("support@chandlerazpd.gov");
     new ses.EmailIdentity(this, "EmailIdentity", {
       identity: emailIdentity,
     });

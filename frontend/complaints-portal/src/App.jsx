@@ -3,12 +3,13 @@ import "./index.css";
 import "./App.css";
 
 import React, { useEffect, useState } from "react";
-import { Box, Button, Stack, CircularProgress } from "@mui/material";
+import { Box, Button, Stack, CircularProgress, Typography } from "@mui/material";
 import { ToastContainer } from "react-toastify";
 import useStore from "./store/store";
 import LeftPanel from "./components/LeftPanel";
 import MainPage from "./components/MainPage";
-import { fetchToken, decodeIdToken } from "./authHelper";
+import loadinggif from "./assets/loading.gif";
+import { fetchToken, decodeIdToken, performLogout } from "./authHelper";
 
 const { VITE_AUTH_ENDPOINT: AUTH_ENDPOINT, VITE_CLIENT_ID: CLIENT_ID, VITE_REDIRECT_URI: REDIRECT_URI, VITE_TOKEN_LOGOUT: TOKEN_LOGOUT } = import.meta.env;
 
@@ -39,12 +40,12 @@ export default function App() {
       try {
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get("code");
-        // const isAdminUser = false;
         if (idToken) {
           const decoded = decodeIdToken(idToken);
           setUsername(decoded.username);
           setAuthentication(true);
-          const isAdminUser = decoded["custom:isAdmin"] === "true" || decoded["cognito:groups"]?.includes("Admins");
+
+          const isAdminUser = decoded.userinfo.roles[0] === "administrator";
           setIsAdmin(isAdminUser);
         } else if (code) {
           const { id_token } = await fetchToken(code);
@@ -53,7 +54,7 @@ export default function App() {
           setIdToken(id_token);
           setUsername(decoded.username);
           setAuthentication(true);
-          const isAdminUser = decoded["custom:isAdmin"] === "true" || decoded["cognito:groups"]?.includes("Admins");
+          const isAdminUser = decoded.userinfo.roles[0] === "administrator";
           setIsAdmin(isAdminUser);
 
           window.history.replaceState({}, document.title, "/");
@@ -71,13 +72,8 @@ export default function App() {
     checkAuthentication();
   }, [idToken]);
 
-  const handleLogout = () => {
-    setUsername("");
-    setIdToken("");
-    setAuthentication(false);
-    setIsAdmin(false);
-
-    window.location.href = TOKEN_LOGOUT;
+  const handleLogout = async () => {
+    performLogout();
   };
 
   if (loading) {
@@ -96,12 +92,10 @@ export default function App() {
             <AuthenticatedApp signOut={handleLogout} />
           ) : (
             <Stack alignItems="center" justifyContent="center" sx={{ height: "100vh" }}>
-              <Box>
-                Authenticating...
-                <Button variant="outlined" color="error" onClick={handleLogout} sx={{ mt: 2 }}>
-                  Logout
-                </Button>
-              </Box>
+              <>
+                <img src={loadinggif} alt="Loading" style={{ width: "120px", height: "120px" }} />
+                <Typography>Loading your session...</Typography>
+              </>
             </Stack>
           )}
         </header>

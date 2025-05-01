@@ -11,7 +11,7 @@ const githubOwner = app.node.tryGetContext("githubOwner") || "ASUCICREPO";
 
 const clientId = app.node.tryGetContext("clientId");
 const clientSecret = app.node.tryGetContext("clientSecret");
-// const redirectUri = app.node.tryGetContext("redirectUri");
+const redirectUri = app.node.tryGetContext("redirectUri");
 const authEndPoint = app.node.tryGetContext("authEndPoint");
 const tokenEndPoint = app.node.tryGetContext("tokenEndPoint");
 const tokenLogout = app.node.tryGetContext("tokenLogout");
@@ -20,7 +20,7 @@ const tokenLogout = app.node.tryGetContext("tokenLogout");
 if (!githubToken) {
   throw new Error("GitHub token must be provided. Use -c githubToken=<your-token> when deploying.");
 }
-if (!clientId || !clientSecret || !authEndPoint || !tokenEndPoint || !tokenLogout) {
+if (!clientId || !clientSecret || !redirectUri || !authEndPoint || !tokenEndPoint || !tokenLogout) {
   throw new Error("One or more required auth environment variables are missing. Pass them using -c.");
 }
 
@@ -35,7 +35,7 @@ new CdkStack(app, "CdkStack", {
   // viteEnableAuth,
   clientId,
   clientSecret,
-  // redirectUri,
+  redirectUri,
   authEndPoint,
   tokenEndPoint,
   tokenLogout,
