@@ -45,7 +45,8 @@ export default function App() {
           setUsername(decoded.username);
           setAuthentication(true);
 
-          const isAdminUser = decoded.userinfo.roles[0] === "administrator";
+          const isAdminUser = decoded?.userinfo?.user_role?.includes("admin");
+
           setIsAdmin(isAdminUser);
         } else if (code) {
           const { id_token } = await fetchToken(code);
@@ -54,12 +55,12 @@ export default function App() {
           setIdToken(id_token);
           setUsername(decoded.username);
           setAuthentication(true);
-          const isAdminUser = decoded.userinfo.roles[0] === "administrator";
+          const isAdminUser = decoded?.userinfo?.user_role?.includes("admin");
           setIsAdmin(isAdminUser);
 
           window.history.replaceState({}, document.title, "/");
         } else {
-          window.location.href = `${AUTH_ENDPOINT}?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=openid%20email%20profile`;
+          window.location.href = `${AUTH_ENDPOINT}?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=openid%20email%20profile%20custom`;
         }
       } catch (error) {
         console.error("Authentication error:", error);
