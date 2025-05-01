@@ -474,7 +474,7 @@ export class CdkStack extends cdk.Stack {
         frontend: {
           phases: {
             preBuild: {
-              commands: ["cd frontend/complaints-portal", "npm ci"],
+              commands: ["cd frontend/complaints-portal", "npm ci -f"],
             },
             build: {
               commands: ["npm run build"],
