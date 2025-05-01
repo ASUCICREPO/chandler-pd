@@ -74,7 +74,7 @@ def lambda_handler(event, context):
                 body = "\n".join([format_complaint(c) for c in event['selectedComplaints']])
                 
                 response = client.send_email(
-                    Source='mmaddur1@asu.edu',
+                    Source='support@chandlerazpd.gov',
                     Destination={'ToAddresses': [event['sendTo']]},
                     Message={
                         'Subject': {'Data': 'Complaint Collection'},
