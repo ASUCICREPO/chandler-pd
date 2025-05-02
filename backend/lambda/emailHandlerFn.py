@@ -1,9 +1,13 @@
 import boto3
 import re
+import os
 from botocore.exceptions import ClientError
 
 client = boto3.client('ses', region_name='us-west-2')
 
+SOURCE_EMAIL = os.environ['SOURCE_EMAIL']
+
+# Validates email address structure and domain
 def validation_fn(email):
     pattern = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
     Validation1 = re.match(pattern, email)
@@ -11,10 +15,10 @@ def validation_fn(email):
         val_subject = email.split('@')[1].split('.')
         validation2 = (val_subject[0] == 'chandleraz' or val_subject[0] == 'chandlerazpd') and val_subject[1] == 'gov'
         return validation2
-        # return True
     else:
         return False
 
+# Checks if email address is verified in AWS SES
 def verify_email_identity(email_address):
     try:
         client.verify_email_identity(EmailAddress=email_address)
@@ -22,6 +26,7 @@ def verify_email_identity(email_address):
     except ClientError as e:
         print(f"Error: {e.response['Error']['Message']}")
 
+# Formats complaint data into a readable format for email body
 def format_complaint(complaint):
     return f"""
         Complaint ID: {complaint['complaintId']}
@@ -54,7 +59,7 @@ def format_complaint(complaint):
         {'='*40}
     """
 
-
+# Driver Function containing the final email service format
 def lambda_handler(event, context):
 
     try:
@@ -74,7 +79,7 @@ def lambda_handler(event, context):
                 body = "\n".join([format_complaint(c) for c in event['selectedComplaints']])
                 
                 response = client.send_email(
-                    Source='support@chandlerazpd.gov',
+                    Source=SOURCE_EMAIL,
                     Destination={'ToAddresses': [event['sendTo']]},
                     Message={
                         'Subject': {'Data': 'Complaint Collection'},

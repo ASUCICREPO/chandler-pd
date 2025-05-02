@@ -11,19 +11,12 @@ COMPLAINTS_TABLE = os.environ['COMPLAINT_TABLE_NAME']
 
 def convert_to_utc7(time_str):
     """Convert time string to UTC-7 timezone"""
-    # Parse the time string into a datetime object
-    # time_obj = datetime.strptime(time_str, '%Y-%m-%dT%H:%M:%S.%fZ')
-
-    # Set the timezone to UTC
-    # time_obj = time_obj.replace(tzinfo=timezone.utc)
 
     # Convert to UTC-7
     phoenix_offset = timedelta(hours=-7)
     phoenix_timezone = timezone(phoenix_offset)
-    # time_str = time_str.astimezone(phoenix_timezone)
 
     final_date_time = datetime.fromisoformat(time_str).astimezone(phoenix_timezone)
-    # date_var = final_date_time.date()
     time_var = final_date_time.time()
 
     # Format the datetime object back to a string
@@ -48,8 +41,8 @@ def lambda_handler(event, context):
      
     filter_expressions = []
     
+    # Handling Date Based Query
     if start_date and end_date:
-        # filter_expressions.append(Attr('startDate').eq(start_date) & Attr('endDate').eq(end_date))
         filter_expressions.append(Attr('startDate').between(start_date, end_date))
     elif date:
         filter_expressions.append(Attr('dateOfComplaint').eq(date))
@@ -58,14 +51,15 @@ def lambda_handler(event, context):
         # Convert string times to datetime.time objects for comparison
         start_time_obj = convert_to_utc7(start_time)
         end_time_obj = convert_to_utc7(end_time)
-        # filter_expressions.append(Attr('startTime').between(start_time_obj.strftime('%H:%M:%S'), end_time_obj.strftime('%H:%M:%S')))
         filter_expressions.append(Attr('startTime').between(start_time_obj, end_time_obj))
 
-        # filter_expressions.append(Attr('startTime').eq(start_time_obj) & Attr('endTime').eq(end_time_obj))
+    # Handling Time Based Query
     elif time:
         # Convert single time string to datetime.time object
         time_obj = datetime.strptime(time, '%H:%M:%S').time() 
         filter_expressions.append(Attr('time').eq(time_obj.strftime('%H:%M:%S')))        
+
+    # Handling Beat Based Query
     if beat_no:
         if isinstance(beat_no, list):
             # Handle multiple beat numbers
@@ -76,7 +70,8 @@ def lambda_handler(event, context):
             filter_expressions.append(combined_beat)
         else:
             filter_expressions.append(Attr('beatNumber').eq(beat_no))
-        
+    
+    # Handling Complaint ID Based Query
     if complaint_id:
         if isinstance(complaint_id, list):
             # Handle multiple complaint IDs
@@ -87,7 +82,8 @@ def lambda_handler(event, context):
             filter_expressions.append(combined_complaints)
         else:
             filter_expressions.append(Attr('complaintId').eq(complaint_id))
-        
+    
+    # Handling Problem Category Based Query
     if problem_category:
         if isinstance(problem_category, list):
             # Handle multiple problem categories
@@ -99,9 +95,11 @@ def lambda_handler(event, context):
         else:
             filter_expressions.append(Attr('problemCategory').eq(problem_category))     
 
+    # Handling Complaint Status Based Query
     if complaint_status:
         filter_expressions.append(Attr('complaintStatus').eq(complaint_status))
 
+    # Creating a combined filter expression
     if filter_expressions:
         combined_filter = filter_expressions[0]
         for filter_exp in filter_expressions[1:]:
@@ -113,7 +111,8 @@ def lambda_handler(event, context):
     totalStatusDict = {}
 
     print(filter_expressions)
-    # Incase it is the totals of the filter query
+    
+    # Organizing the queried items based on complaint status
     if not filter_expressions:
         totalStatusDict['TotalOpen'] = len(table.scan(FilterExpression=Attr('complaintStatus').eq("Open"))['Items'])
         totalStatusDict['TotalClosed'] = len(table.scan(FilterExpression=Attr('complaintStatus').eq("Closed"))['Items'])
@@ -126,24 +125,14 @@ def lambda_handler(event, context):
                 total_count_filter = Attr('complaintStatus').eq(each_status)
                 new_combined_filter = new_combined_filter & total_count_filter
                 totalStatusDict[f"Total{each_status}"] = len(table.scan(FilterExpression=new_combined_filter)['Items'])
-                # response['Items'] += table.scan(FilterExpression=Attr('complaintStatus').eq(each_status))['Items']
         else:
             for each_status in ["Open", "Closed", "Follow-Up", "Red-Star"]:
                 if each_status.lower() == complaint_status.lower():
                     totalStatusDict[f"Total{each_status}"] = len(response['Items'])
                 else:
                     totalStatusDict[f"Total{each_status}"] = 0
-            
     
-    # # In the case of global totals for status
-    # for each_status in ["Open", "Closed", "Follow up", "Red star"]:
-    #     totalStatusDict[each_status] = len(table.scan(FilterExpression=Attr('complaintStatus').eq(each_status))['Items'])
-
-
-
-    # sort by complaint id
-    # response['Items'] = sorted(response['Items'], key=lambda x: x['complaintId'], reverse=True)
-        
+    # Building the response payload
     total_pages = m.ceil(len(response['Items'])/10)
     current_page = int(event.get('page', -1))
     totalComplaint = len(response['Items'])
@@ -153,7 +142,6 @@ def lambda_handler(event, context):
             complaint_data = response['Items'][start_index:]
         else:
             complaint_data = response['Items'][start_index : start_index + 10]
-        # complaint_data = response['Items']
         message = "Complaints fetched successfully"
     else:
         complaint_data = []  

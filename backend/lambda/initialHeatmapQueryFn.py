@@ -7,8 +7,8 @@ dynamodb = boto3.resource('dynamodb')
 
 table = dynamodb.Table(os.environ['COMPLAINT_TABLE_NAME'])
 
+# Driver function that queries and retrieves all open cases per beat
 def lambda_handler(event, context):
-    # TODO take table value from env variable
     try:
         beat_opencases_dict = {}
         opencases_for_each_beat = table.scan()

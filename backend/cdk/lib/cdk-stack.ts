@@ -93,6 +93,7 @@ export class CdkStack extends cdk.Stack {
       code: lambda.Code.fromAsset("../lambda"),
       environment: {
         COMPLAINT_TABLE_NAME: complaintTable.tableName,
+        SOURCE_EMAIL: "support@chandlerazpd.gov"
       },
       role: new iam.Role(this, "emailHandlerLambdaRole", {
         assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
