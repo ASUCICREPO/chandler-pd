@@ -83,9 +83,21 @@ git clone <your-forked-repo-link>
 
 ```bash
 cd chandler-pd/backend/cdk
+npm install
 ```
 
-3. **📦 Deploy the Application Using CDK**
+3. **📂 Navigate to lexbot.js within node modules**
+
+```bash
+cd node_modules/cdk-lex-zip-import/lib/lexbot.js
+```
+
+4. **📝 Add the following line after line 22 in lexbot.js**
+
+```python
+lexBotImport.node.addDependency(upload);
+```
+5. **📦 Navigate back to CDK folder and Deploy the Application Using CDK**
 
 ```bash
 cdk bootstrap \
