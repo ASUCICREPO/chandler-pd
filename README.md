@@ -58,14 +58,14 @@ git clone <your-forked-repo-link>
 - Choose "Create Stack" --> "with new resources"
 - Click "Choose an existing template" --> "Upload a template file" --> Upload the file and click next
 - Provide the following parameters
-	•	githubToken – GitHub Personal Access Token used by Amplify to clone the source repo.
-	•	githubOwner – GitHub username or organization where the repo is hosted.
-	•	clientId – Client ID from MiniOrange.
-	•	clientSecret – Client Secret from MiniOrange.
-	•	authEndPoint – Authorization Endpoint URL.
-	•	tokenEndPoint – Access Token Endpoint used to exchange the auth code for an ID token.
-	•	redirectUri – Redirect URI to return to after login. This should match your deployed app’s Amplify URL (or http://localhost:5173/ for local testing).
-	•	tokenLogout – Logout Endpoint URL.
+	- githubToken – GitHub Personal Access Token used by Amplify to clone the source repo.
+	- githubOwner – GitHub username or organization where the repo is hosted.
+	- clientId – Client ID from MiniOrange.
+	- clientSecret – Client Secret from MiniOrange.
+	- authEndPoint – Authorization Endpoint URL.
+	- tokenEndPoint – Access Token Endpoint used to exchange the auth code for an ID token.
+	- redirectUri – Redirect URI to return to after login. This should match your deployed app’s Amplify URL (or http://localhost:5173/ for local testing).
+	- tokenLogout – Logout Endpoint URL.
 - Choose Next until you reach the "Review and Create" page
 - Choose Submit
 
